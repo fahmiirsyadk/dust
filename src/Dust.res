@@ -1,0 +1,1 @@
+module Html = Internal__Dust_Syntax.Html

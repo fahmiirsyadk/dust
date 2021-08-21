@@ -1,0 +1,20 @@
+{
+  "name": "dust-ssg",
+  "version": "0.0.1",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    }
+  ],
+  "package-specs": {
+    "module": "es6",
+    "in-source": true
+  },
+  "suffix": ".mjs",
+  "namespace": "dust-ssg",
+  "bs-dependencies": [],
+  "warnings": {
+    "error": "+101"
+  }
+}

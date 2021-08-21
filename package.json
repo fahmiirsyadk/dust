@@ -1,0 +1,31 @@
+{
+  "name": "dust",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "bs-bastet": "^2.0.0",
+    "chokidar": "^3.5.2",
+    "fast-glob": "^3.2.7",
+    "fs-extra": "^10.0.0",
+    "globby": "^12.0.0",
+    "gray-matter": "^4.0.3",
+    "kleur": "^4.1.4",
+    "live-server": "^1.2.1",
+    "rehype-stringify": "^9.0.1",
+    "remark-gfm": "^2.0.0",
+    "remark-parse": "^10.0.0",
+    "remark-rehype": "^9.0.0",
+    "rescript": "^9.1.4",
+    "unified": "^10.1.0"
+  },
+  "scripts": {
+    "re:dev": "rescript build -w",
+    "re:clean": "rescript clean",
+    "dev": "npm run re:dev && npm run dust",
+    "build": "npm run rescript && npm run dust build"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

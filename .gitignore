@@ -1,0 +1,7 @@
+node_modules
+
+# Rescript
+.bsb.lock
+.merlin
+lib/
+.vscode/
