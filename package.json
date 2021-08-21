@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "bin": {
+    "dust": "./src/Utils/cli.mjs"
+  },
   "devDependencies": {
     "bs-bastet": "^2.0.0",
     "chokidar": "^3.5.2",
