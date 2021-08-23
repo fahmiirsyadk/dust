@@ -1,5 +1,5 @@
 {
-  "name": "dust-ssg",
+  "name": "dust",
   "version": "0.0.1",
   "sources": [
     {
@@ -12,7 +12,7 @@
     "in-source": true
   },
   "suffix": ".mjs",
-  "namespace": "dust-ssg",
+  "namespace": "dust",
   "bs-dependencies": [],
   "warnings": {
     "error": "+101"
