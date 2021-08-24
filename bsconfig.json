@@ -13,7 +13,9 @@
   },
   "suffix": ".mjs",
   "namespace": "dust",
-  "bs-dependencies": [],
+  "bs-dependencies": [
+    "@ryyppy/rescript-promise"
+  ],
   "warnings": {
     "error": "+101"
   }

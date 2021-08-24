@@ -7,6 +7,7 @@
     "dust": "./src/Utils/cli.mjs"
   },
   "devDependencies": {
+    "@ryyppy/rescript-promise": "^2.1.0",
     "bs-bastet": "^2.0.0",
     "chokidar": "^3.5.2",
     "fast-glob": "^3.2.7",
