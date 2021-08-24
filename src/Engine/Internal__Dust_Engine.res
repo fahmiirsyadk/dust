@@ -6,6 +6,7 @@ module Utils = Internal__Dust_Utils
 @module("js-yaml") external yamlLoad: string => 'a = "load"
 @module("globby") external globby: string => array<string> = "globby"
 @scope("JSON") @val external parse: string => 'a = "parse"
+@scope("Object") @val external obj_entries: 'a => array<'a> = "entries"
 
 module Kleur = {
   type t
@@ -91,7 +92,7 @@ let getMarkdownSources = dataYaml => {
 let generatePages = () => {
   let pagesPath = [Node.Process.cwd(), "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
 
-  let markdownPath = () =>
+  let markdownSources = () =>
     switch configIsExist.contents {
     | true => {
         let configContent = configPath->readFileSync("utf-8")->yamlLoad
@@ -103,7 +104,17 @@ let generatePages = () => {
     | false => []
     }
 
-  markdownPath()->Js.log
+  let sources = markdownSources()->Js.Array2.map(path => {
+    open Array
+    let flatten = (arr: array<array<'a>>): array<'a> => arr->to_list->concat
+    let obj = obj_entries(path)->flatten
+    {
+      "source": obj[0],
+      "path": obj[1],
+    }
+  })
+
+  Js.log(sources)
 
   let pageFileImport = (path, meta): Promise.t<syntaxOutput> => {
     let file = %raw("
