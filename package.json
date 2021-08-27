@@ -24,7 +24,7 @@
     "unified": "^10.1.0"
   },
   "scripts": {
-    "re:dev": "rescript build -w",
+    "re:dev": "rescript build -w -with-deps",
     "re:clean": "rescript clean",
     "dev": "npm run re:dev && npm run dust",
     "build": "npm run rescript && npm run dust build"
