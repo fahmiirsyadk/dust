@@ -113,16 +113,22 @@ let generatePages = () => {
     paths
     ->Js.Array2.map(path => {
       let filename = path->Node.Path.basename_ext(".mjs")
+      let specialPage = switch filename {
+      | "index"
+      | "404"
+      | "500" => true
+      | _ => false
+      }
       let outputPath =
         path
-        ->Js.String2.replace(filename, filename !== "index" ? "index" : filename)
+        ->Js.String2.replace(filename, !specialPage ? "index" : filename)
         ->Js.String2.replace(".mjs", ".html")
         ->Js.String2.replace(
           [Node.Process.cwd(), "src", "pages"]->Node.Path.join,
           [
             Node.Process.cwd(),
             defaultConfig.folder.output,
-            filename === "index" ? "" : filename,
+            specialPage ? "" : filename,
           ]->Node.Path.join,
         )
       path->ocamlToHtml(outputPath, filename, "")
