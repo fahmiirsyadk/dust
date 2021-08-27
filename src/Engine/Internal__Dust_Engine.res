@@ -115,6 +115,7 @@ let generatePages = () => {
       let filename = path->Node.Path.basename_ext(".mjs")
       let outputPath =
         path
+        ->Js.String2.replace(filename, filename !== "index" ? "index" : filename)
         ->Js.String2.replace(".mjs", ".html")
         ->Js.String2.replace(
           [Node.Process.cwd(), "src", "pages"]->Node.Path.join,
@@ -129,7 +130,6 @@ let generatePages = () => {
     ->Promise.all
   })
   ->then(res => res->Js.Array2.map(x => x->generateHtml)->Promise.all)
-  // ->ignore
 }
 
 let getAllMD = ()
@@ -141,24 +141,19 @@ let copyAssetsAndPublic = () => {
     ->path
     ->Utils.copy(["dist", defaultConfig.folder.assets]->path)
 
-  let copyPublic = () => 
-    ["src", "public"]
-    ->path
-    ->Utils.copy(["dist"]->path)
+  let copyPublic = () => ["src", "public"]->path->Utils.copy(["dist"]->path)
   // Fs-extra have issue about race codition on copy function
   // solved with ensureDir that will check availability of dist folder
-  // related issue: 
+  // related issue:
   // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
   //
-  Utils.ensureDir(["dist"]->path)
-  ->then(_ => [copyAssets(), copyPublic()]->Promise.all)
+  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
 }
 
 let run = () => {
   outputPath->cleanOutputFolder
   checkConfig()
-  [copyAssetsAndPublic(), generatePages()]
-  ->Promise.all->ignore
+  [copyAssetsAndPublic(), generatePages()]->Promise.all->ignore
 }
 
 run()
