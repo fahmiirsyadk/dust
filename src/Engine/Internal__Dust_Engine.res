@@ -11,7 +11,7 @@ open Promise
 type folderConfig = {
   blog: string,
   output: string,
-  static: string,
+  assets: string,
   pages: string,
   base: string,
 }
@@ -26,19 +26,19 @@ type metadata = {
   output: string,
 }
 
-let configIsExist = ref(true)
-let configPath = [Node.Process.cwd(), "dust.config.yml"]->Node.Path.join
-let pagesPath = [Node.Process.cwd(), "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
 let defaultConfig = {
   folder: {
     blog: "blog",
     output: "dist",
-    static: "static",
+    assets: "assets",
     pages: "pages",
     base: "./",
   },
 }
-
+let configIsExist = ref(true)
+let configPath = [Node.Process.cwd(), "dust.config.yml"]->Node.Path.join
+let pagesPath = [Node.Process.cwd(), "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
+let outputPath = [Node.Process.cwd(), defaultConfig.folder.output]->Node.Path.join
 let checkExistFolder = folder => folder->existsSync
 
 let checkConfig = () => {
@@ -49,8 +49,7 @@ let checkConfig = () => {
   }
 }
 
-let cleanOutputFolder = folder =>
-  Utils.delSync(folder)
+let cleanOutputFolder = folder => Utils.delSync(folder)
 
 let generateHtml = (metadata: metadata) => {
   switch metadata.status {
@@ -96,9 +95,7 @@ let generatePages = () => {
       switch configPath->readFileSync("utf-8")->yamlLoad->getConfigSources {
       | Some(x) =>
         x->Js.Array2.map(path => {
-          open Array
-          let flatten = (arr: array<array<'a>>): array<'a> => arr->to_list->concat
-          let obj = obj_entries(path)->flatten
+          let obj = obj_entries(path)->Utils.flatten
           {
             "source": obj[0],
             "path": obj[1],
@@ -109,7 +106,7 @@ let generatePages = () => {
     | false => []
     }
 
-  // configSourcesData()->Js.log
+  configSourcesData()->Js.log
 
   pagesPath
   ->then(paths => {
@@ -132,15 +129,36 @@ let generatePages = () => {
     ->Promise.all
   })
   ->then(res => res->Js.Array2.map(x => x->generateHtml)->Promise.all)
-  ->ignore
+  // ->ignore
 }
 
 let getAllMD = ()
+let copyAssetsAndPublic = () => {
+  let path = path => [Node.Process.cwd()]->Js.Array2.concat(path)->Node.Path.join
+
+  let copyAssets = () =>
+    ["src", defaultConfig.folder.assets]
+    ->path
+    ->Utils.copy(["dist", defaultConfig.folder.assets]->path)
+
+  let copyPublic = () => 
+    ["src", "public"]
+    ->path
+    ->Utils.copy(["dist"]->path)
+  // Fs-extra have issue about race codition on copy function
+  // solved with ensureDir that will check availability of dist folder
+  // related issue: 
+  // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
+  //
+  Utils.ensureDir(["dist"]->path)
+  ->then(_ => [copyAssets(), copyPublic()]->Promise.all)
+}
 
 let run = () => {
-  [Node.Process.cwd(), defaultConfig.folder.output]->Node.Path.join->cleanOutputFolder
+  outputPath->cleanOutputFolder
   checkConfig()
-  generatePages()
+  [copyAssetsAndPublic(), generatePages()]
+  ->Promise.all->ignore
 }
 
 run()
