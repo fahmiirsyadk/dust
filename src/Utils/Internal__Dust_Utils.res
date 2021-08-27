@@ -11,10 +11,8 @@ external writeFileOptions: (
   ~encoding: encoding=?,
   unit,
 ) => writeFileOptions = ""
-
-@module("fs") @scope("promises")
-external writeFile: (string, string, ~options: writeFileOptions=?, unit) => Promise.t<unit> =
-  "writeFile"
+@module("fs-extra") external outputFile: (string, string, ~options: writeFileOptions=?, unit) => Promise.t<unit> = "outputFile"
+@module("del") external delSync: (string) => unit = "sync"
 
 module Klaw = {
   type t

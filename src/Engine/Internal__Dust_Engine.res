@@ -20,6 +20,7 @@ type config = {folder: folderConfig}
 
 type metadata = {
   status: bool,
+  filename: string,
   origin: string,
   content: string,
   output: string,
@@ -39,6 +40,7 @@ let defaultConfig = {
 }
 
 let checkExistFolder = folder => folder->existsSync
+
 let checkConfig = () => {
   try {
     let _ = "dust.config.yml"->readFileSync("utf-8")
@@ -47,14 +49,13 @@ let checkConfig = () => {
   }
 }
 
-let cleanOutputFolder = folder => {
-  checkExistFolder(folder) ? () : mkdirSync(folder)
-}
+let cleanOutputFolder = folder =>
+  Utils.delSync(folder)
 
 let generateHtml = (metadata: metadata) => {
   switch metadata.status {
   | true =>
-    Utils.writeFile(
+    Utils.outputFile(
       metadata.output,
       ~options=Utils.writeFileOptions(~encoding=#"utf-8", ()),
       metadata.content,
@@ -64,19 +65,19 @@ let generateHtml = (metadata: metadata) => {
   }
 }
 
-let ocamlToHtml = (path, output, meta): Promise.t<metadata> => {
+let ocamlToHtml = (path, output, filename, meta): Promise.t<metadata> => {
   let file = %raw("
-      async function(path, output, props) {
+      async function(path, output, filename, props) {
         let data = await import(path)
         const status = data.main ? true : false
         if (status) {
-          return { status, origin: path, output, content: data.main(props) }
+          return { status, filename, origin: path, output, content: data.main(props) }
         } else {
-          return { status, origin: path, output, content: `` }
+          return { status, filename, origin: path, output, content: `` }
         }
       }
     ")
-  file(path, output, meta)
+  file(path, output, filename, meta)
 }
 
 let generatePages = () => {
@@ -107,19 +108,26 @@ let generatePages = () => {
       }
     | false => []
     }
-  configSourcesData()->Js.log
+
+  // configSourcesData()->Js.log
+
   pagesPath
   ->then(paths => {
     paths
     ->Js.Array2.map(path => {
+      let filename = path->Node.Path.basename_ext(".mjs")
       let outputPath =
         path
         ->Js.String2.replace(".mjs", ".html")
         ->Js.String2.replace(
           [Node.Process.cwd(), "src", "pages"]->Node.Path.join,
-          [Node.Process.cwd(), defaultConfig.folder.output]->Node.Path.join,
+          [
+            Node.Process.cwd(),
+            defaultConfig.folder.output,
+            filename === "index" ? "" : filename,
+          ]->Node.Path.join,
         )
-      path->ocamlToHtml(outputPath, "")
+      path->ocamlToHtml(outputPath, filename, "")
     })
     ->Promise.all
   })
@@ -130,6 +138,7 @@ let generatePages = () => {
 let getAllMD = ()
 
 let run = () => {
+  [Node.Process.cwd(), defaultConfig.folder.output]->Node.Path.join->cleanOutputFolder
   checkConfig()
   generatePages()
 }
