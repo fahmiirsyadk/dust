@@ -140,7 +140,7 @@ let generatePages = () => {
 
 let getAllMD = ()
 let copyAssetsAndPublic = () => {
-  let path = path => [Node.Process.cwd()]->Js.Array2.concat(path)->Node.Path.join
+  let path = x => [Node.Process.cwd()]->Js.Array2.concat(x)->Node.Path.join
 
   let copyAssets = () =>
     ["src", defaultConfig.folder.assets]
