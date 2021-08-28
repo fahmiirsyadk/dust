@@ -26,6 +26,12 @@ type metadata = {
   output: string,
 }
 
+type metadataMarkdown = {
+  path: array<string>,
+  raw: array<string>,
+  content: string,
+}
+
 let defaultConfig = {
   folder: {
     blog: "blog",
@@ -79,35 +85,7 @@ let ocamlToHtml = (path, output, filename, meta): Promise.t<metadata> => {
   file(path, output, filename, meta)
 }
 
-let generatePages = () => {
-  // Check config sources
-  let getConfigSources = dataYaml => {
-    dataYaml
-    ->Js.toOption
-    ->Belt.Option.flatMap(content => content["sources"])
-    ->Belt.Option.flatMap(sources => sources)
-  }
-
-  // set data sources if exist will return data within array, or else return empty array
-  let configSourcesData = () =>
-    switch configIsExist.contents {
-    | true =>
-      switch configPath->readFileSync("utf-8")->yamlLoad->getConfigSources {
-      | Some(x) =>
-        x->Js.Array2.map(path => {
-          let obj = obj_entries(path)->Utils.flatten
-          {
-            "source": obj[0],
-            "path": obj[1],
-          }
-        })
-      | None => []
-      }
-    | false => []
-    }
-
-  configSourcesData()->Js.log
-
+let generatePages = pagesPath => {
   pagesPath
   ->then(paths => {
     paths
@@ -138,7 +116,67 @@ let generatePages = () => {
   ->then(res => res->Js.Array2.map(x => x->generateHtml)->Promise.all)
 }
 
-let getAllMD = ()
+let mdToHtml = data => {
+  open Utils.Unified
+
+  unified()
+  ->use(remarkParse)
+  ->use(remarkGfm)
+  ->use(rehype)
+  ->use(stringify)
+  ->process(data)
+  ->then(res => res["value"]->resolve)
+}
+
+let mdToPages = () => {
+  // Check config sources
+  let getConfigSources = dataYaml => {
+    dataYaml
+    ->Js.toOption
+    ->Belt.Option.flatMap(content => content["sources"])
+    ->Belt.Option.flatMap(sources => sources)
+  }
+
+  // set data sources if exist will return data within array, or else return empty array
+  let configSourcesData = () =>
+    switch configIsExist.contents {
+    | true =>
+      switch configPath->readFileSync("utf-8")->yamlLoad->getConfigSources {
+      | Some(x) =>
+        x->Js.Array2.map(path => {
+          let obj = obj_entries(path)->Utils.flatten
+          let pathResolve = path => [Node.Process.cwd()]->Js.Array2.concat(path)->Node.Path.join
+          {
+            "source": obj[0],
+            "path": [obj[1]]->pathResolve,
+            "pattern": [obj[1], "*.md"]->pathResolve,
+          }
+        })
+      | None => []
+      }
+    | false => []
+    }
+
+  configSourcesData()
+  ->Js.Array2.map(data => data["pattern"]->globby)
+  ->Promise.all
+  ->then(res => {
+    let mdPaths = res->Utils.flatten
+    mdPaths
+    ->Js.Array2.map(path => path->Utils.readFile("utf-8"))
+    ->Promise.all
+    ->then(res => (mdPaths, res)->resolve)
+  })
+  ->then(res => {
+    let (paths, raws) = res
+    raws->Js.Array2.map(raw => raw->mdToHtml)->Promise.all->then(res => (paths, raws, res)->resolve)
+  })
+  ->then(res => {
+    Js.log(res)->resolve
+  })
+  ->ignore
+}
+
 let copyAssetsAndPublic = () => {
   let path = x => [Node.Process.cwd()]->Js.Array2.concat(x)->Node.Path.join
 
@@ -159,7 +197,8 @@ let copyAssetsAndPublic = () => {
 let run = () => {
   outputPath->cleanOutputFolder
   checkConfig()
-  [copyAssetsAndPublic(), generatePages()]->Promise.all->ignore
+  [copyAssetsAndPublic(), pagesPath->generatePages]->Promise.all->ignore
+  mdToPages()
 }
 
 run()

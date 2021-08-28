@@ -16,6 +16,8 @@ external writeFileOptions: (
 @module("del") external delSync: (string) => unit = "sync"
 @module("fs-extra") external copy: (string, string) => Promise.t<unit> = "copy"
 @module("fs-extra") external ensureDir: (string) => Promise.t<unit> = "ensureDir"
+@module("fs") @scope("promises")
+external readFile: (string, string) => Js.Promise.t<string> = "readFile"
 
 let flatten = (arr: array<array<'a>>): array<'a> => arr->Array.to_list->Array.concat
 
@@ -34,6 +36,17 @@ module Kleur = {
   @send external blue: (t, 'a) => t = "blue"
   @send external underline: (t, 'a) => t = "underline"
   @send external red: (t, 'a) => t = "red"
+}
+
+module Unified = {
+  type t
+  @module("remark-parse") external remarkParse: t = "default"
+  @module("remark-gfm") external remarkGfm: t = "default"
+  @module("remark-rehype") external rehype: t = "default"
+  @module("rehype-stringify") external stringify: t = "default"
+  @module("unified") external unified: unit => t = "unified"
+  @send external use: (t, 'a) => t = "use"
+  @send external process: (t, string) => Promise.t<'a> = "process"
 }
 
 module ErrorMessage = {
