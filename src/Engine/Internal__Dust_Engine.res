@@ -26,12 +26,6 @@ type metadataPage = {
   output: string,
 }
 
-type metadataMarkdown = {
-  path: array<string>,
-  raw: array<string>,
-  content: string,
-}
-
 let defaultConfig = {
   folder: {
     blog: "blog",
@@ -43,10 +37,9 @@ let defaultConfig = {
 }
 let configIsExist = ref(true)
 let rootPath = Node.Process.cwd()
-let configPath = [rootPath, "dust.config.yml"]->Node.Path.join
+let configPath = [rootPath, ".dust.yml"]->Node.Path.join
 let pagesPath = [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
 let outputPath = [rootPath, defaultConfig.folder.output]->Node.Path.join
-let checkExistFolder = folder => folder->existsSync
 
 let checkConfig = () => {
   try {
