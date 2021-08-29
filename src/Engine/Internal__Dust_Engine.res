@@ -18,7 +18,7 @@ type folderConfig = {
 
 type config = {folder: folderConfig}
 
-type metadata = {
+type metadataPage = {
   status: bool,
   filename: string,
   origin: string,
@@ -42,9 +42,10 @@ let defaultConfig = {
   },
 }
 let configIsExist = ref(true)
-let configPath = [Node.Process.cwd(), "dust.config.yml"]->Node.Path.join
-let pagesPath = [Node.Process.cwd(), "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
-let outputPath = [Node.Process.cwd(), defaultConfig.folder.output]->Node.Path.join
+let rootPath = Node.Process.cwd()
+let configPath = [rootPath, "dust.config.yml"]->Node.Path.join
+let pagesPath = [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
+let outputPath = [rootPath, defaultConfig.folder.output]->Node.Path.join
 let checkExistFolder = folder => folder->existsSync
 
 let checkConfig = () => {
@@ -57,7 +58,7 @@ let checkConfig = () => {
 
 let cleanOutputFolder = folder => Utils.delSync(folder)
 
-let generateHtml = (metadata: metadata) => {
+let generateHtml = metadata => {
   switch metadata.status {
   | true =>
     Utils.outputFile(
@@ -70,7 +71,7 @@ let generateHtml = (metadata: metadata) => {
   }
 }
 
-let ocamlToHtml = (path, output, filename, meta): Promise.t<metadata> => {
+let ocamlToHtml = (path, output, filename, meta): Promise.t<metadataPage> => {
   let file = %raw("
       async function(path, output, filename, props) {
         let data = await import(path)
@@ -85,7 +86,7 @@ let ocamlToHtml = (path, output, filename, meta): Promise.t<metadata> => {
   file(path, output, filename, meta)
 }
 
-let generatePages = pagesPath => {
+let generatePages = (pagesPath, metadata) => {
   pagesPath
   ->then(paths => {
     paths
@@ -102,14 +103,10 @@ let generatePages = pagesPath => {
         ->Js.String2.replace(filename, !specialPage ? "index" : filename)
         ->Js.String2.replace(".mjs", ".html")
         ->Js.String2.replace(
-          [Node.Process.cwd(), "src", "pages"]->Node.Path.join,
-          [
-            Node.Process.cwd(),
-            defaultConfig.folder.output,
-            specialPage ? "" : filename,
-          ]->Node.Path.join,
+          [rootPath, "src", "pages"]->Node.Path.join,
+          [rootPath, defaultConfig.folder.output, specialPage ? "" : filename]->Node.Path.join,
         )
-      path->ocamlToHtml(outputPath, filename, "")
+      path->ocamlToHtml(outputPath, filename, metadata)
     })
     ->Promise.all
   })
@@ -138,14 +135,15 @@ let mdToPages = () => {
   }
 
   // set data sources if exist will return data within array, or else return empty array
-  let configSourcesData = () =>
+  let transformConfigSource = () =>
     switch configIsExist.contents {
     | true =>
       switch configPath->readFileSync("utf-8")->yamlLoad->getConfigSources {
       | Some(x) =>
         x->Js.Array2.map(path => {
           let obj = obj_entries(path)->Utils.flatten
-          let pathResolve = path => [Node.Process.cwd()]->Js.Array2.concat(path)->Node.Path.join
+          let pathResolve = path => [rootPath]->Js.Array2.concat(path)->Node.Path.join
+          // create temporary metadata to simplify the process
           {
             "source": obj[0],
             "path": [obj[1]]->pathResolve,
@@ -157,28 +155,72 @@ let mdToPages = () => {
     | false => []
     }
 
-  configSourcesData()
-  ->Js.Array2.map(data => data["pattern"]->globby)
+  let configSources = () =>
+    transformConfigSource()->Js.Array2.map(data => {
+      data["pattern"]
+      ->globby
+      ->then(res =>
+        {
+          "source": data["source"],
+          "path": data["path"],
+          "files": res,
+        }->resolve
+      )
+    })
+
+  let jsObjFile = %raw("
+    function(source, filename, content, raw, internal) {
+      return {
+        filename,
+        ...internal,
+        data: {
+          name: `${source}/${filename}`,
+          content,
+          raw,
+        }
+      }
+    }
+  ")
+
+  configSources()
   ->Promise.all
-  ->then(res => {
-    let mdPaths = res->Utils.flatten
-    mdPaths
-    ->Js.Array2.map(path => path->Utils.readFile("utf-8"))
+  ->then(res =>
+    res
+    ->Js.Array2.mapi((data, dataIndex) => {
+      data["files"]->Js.Array2.mapi((file, _) => {
+        let filename = file->Node.Path.basename_ext(".md")
+        file
+        ->Utils.readFile("utf-8")
+        ->then(raw => {
+          raw
+          ->mdToHtml
+          ->then(content =>
+            jsObjFile(data["source"], filename, content, raw, res[dataIndex])->resolve
+          )
+        })
+      })
+    })
+    ->Utils.flatten
     ->Promise.all
-    ->then(res => (mdPaths, res)->resolve)
+  )
+  ->then(metas => {
+    metas
+    ->Js.Array2.map(meta => {
+      let filename = meta["data"]["name"]
+      let path = [rootPath, defaultConfig.folder.output, filename, "index.html"]->Node.Path.join
+      path->Utils.outputFile(
+        ~options=Utils.writeFileOptions(~encoding=#"utf-8", ()),
+        meta["data"]["content"],
+        (),
+      )
+    })
+    ->Promise.all
+    ->then(_ => metas->resolve)
   })
-  ->then(res => {
-    let (paths, raws) = res
-    raws->Js.Array2.map(raw => raw->mdToHtml)->Promise.all->then(res => (paths, raws, res)->resolve)
-  })
-  ->then(res => {
-    Js.log(res)->resolve
-  })
-  ->ignore
 }
 
 let copyAssetsAndPublic = () => {
-  let path = x => [Node.Process.cwd()]->Js.Array2.concat(x)->Node.Path.join
+  let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
 
   let copyAssets = () =>
     ["src", defaultConfig.folder.assets]
@@ -197,8 +239,9 @@ let copyAssetsAndPublic = () => {
 let run = () => {
   outputPath->cleanOutputFolder
   checkConfig()
-  [copyAssetsAndPublic(), pagesPath->generatePages]->Promise.all->ignore
-  mdToPages()
+  [copyAssetsAndPublic(), mdToPages()->then(res => pagesPath->generatePages(res))]
+  ->Promise.all
+  ->ignore
 }
 
 run()
