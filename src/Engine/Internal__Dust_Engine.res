@@ -7,6 +7,7 @@ open Promise
 @module("globby") external globby: string => Promise.t<array<string>> = "globby"
 @scope("JSON") @val external parse: string => 'a = "parse"
 @scope("Object") @val external obj_entries: 'a => array<'a> = "entries"
+@module("gray-matter") external matter: string => 'a = "default"
 
 type folderConfig = {
   blog: string,
@@ -43,7 +44,7 @@ let outputPath = [rootPath, defaultConfig.folder.output]->Node.Path.join
 
 let checkConfig = () => {
   try {
-    let _ = "dust.config.yml"->readFileSync("utf-8")
+    let _ = ".dust.yml"->readFileSync("utf-8")
   } catch {
   | Js.Exn.Error(_) => configIsExist := false
   }
@@ -119,26 +120,26 @@ let mdToHtml = data => {
 }
 
 let mdToPages = () => {
-  // Check config sources
-  let getConfigSources = dataYaml => {
+  // Check config collections
+  let getCollectionConfig = dataYaml => {
     dataYaml
     ->Js.toOption
-    ->Belt.Option.flatMap(content => content["sources"])
-    ->Belt.Option.flatMap(sources => sources)
+    ->Belt.Option.flatMap(content => content["collections"])
+    ->Belt.Option.flatMap(collections => collections)
   }
 
-  // set data sources if exist will return data within array, or else return empty array
-  let transformConfigSource = () =>
+  // set data collections if exist will return data within array, or else return empty array
+  let transformCollection = () =>
     switch configIsExist.contents {
     | true =>
-      switch configPath->readFileSync("utf-8")->yamlLoad->getConfigSources {
+      switch configPath->readFileSync("utf-8")->yamlLoad->getCollectionConfig {
       | Some(x) =>
         x->Js.Array2.map(path => {
           let obj = obj_entries(path)->Utils.flatten
           let pathResolve = path => [rootPath]->Js.Array2.concat(path)->Node.Path.join
           // create temporary metadata to simplify the process
           {
-            "source": obj[0],
+            "collection": obj[0],
             "path": [obj[1]]->pathResolve,
             "pattern": [obj[1], "*.md"]->pathResolve,
           }
@@ -148,13 +149,13 @@ let mdToPages = () => {
     | false => []
     }
 
-  let configSources = () =>
-    transformConfigSource()->Js.Array2.map(data => {
+  let collectionConfig = () =>
+    transformCollection()->Js.Array2.map(data => {
       data["pattern"]
       ->globby
       ->then(res =>
         {
-          "source": data["source"],
+          "collection": data["collection"],
           "path": data["path"],
           "files": res,
         }->resolve
@@ -162,20 +163,19 @@ let mdToPages = () => {
     })
 
   let jsObjFile = %raw("
-    function(source, filename, content, raw, internal) {
+    function(collection, filename, content, raw, internal, matter) {
+      const newMatter = {...matter, content}
       return {
-        filename,
         ...internal,
-        data: {
-          name: `${source}/${filename}`,
-          content,
-          raw,
-        }
+        ...newMatter,
+        name: `${collection}/${filename}`,
+        filename,
+        raw
       }
     }
   ")
 
-  configSources()
+  collectionConfig()
   ->Promise.all
   ->then(res =>
     res
@@ -185,10 +185,13 @@ let mdToPages = () => {
         file
         ->Utils.readFile("utf-8")
         ->then(raw => {
-          raw
+          let dataMatter = raw->matter
+          dataMatter["content"]
           ->mdToHtml
           ->then(content =>
-            jsObjFile(data["source"], filename, content, raw, res[dataIndex])->resolve
+            data["collection"]
+            ->jsObjFile(filename, content, raw, res[dataIndex], dataMatter)
+            ->resolve
           )
         })
       })
@@ -199,11 +202,11 @@ let mdToPages = () => {
   ->then(metas => {
     metas
     ->Js.Array2.map(meta => {
-      let filename = meta["data"]["name"]
+      let filename = meta["name"]
       let path = [rootPath, defaultConfig.folder.output, filename, "index.html"]->Node.Path.join
       path->Utils.outputFile(
         ~options=Utils.writeFileOptions(~encoding=#"utf-8", ()),
-        meta["data"]["content"],
+        meta["content"],
         (),
       )
     })
