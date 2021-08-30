@@ -19,12 +19,11 @@ type folderConfig = {
 
 type config = {folder: folderConfig}
 
-type metadataPage = {
+type metadataML = {
   status: bool,
   filename: string,
-  origin: string,
   content: string,
-  output: string,
+  path: string,
 }
 
 let defaultConfig = {
@@ -36,10 +35,13 @@ let defaultConfig = {
     base: "./",
   },
 }
+
 let configIsExist = ref(true)
+let globalMetadata = ref("")
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
 let pagesPath = [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
+// Need to change btw
 let outputPath = [rootPath, defaultConfig.folder.output]->Node.Path.join
 
 let checkConfig = () => {
@@ -52,62 +54,30 @@ let checkConfig = () => {
 
 let cleanOutputFolder = folder => Utils.delSync(folder)
 
-let generateHtml = metadata => {
-  switch metadata.status {
-  | true =>
-    Utils.outputFile(
-      metadata.output,
-      ~options=Utils.writeFileOptions(~encoding=#"utf-8", ()),
-      metadata.content,
-      (),
-    )
-  | false => Promise.resolve()
-  }
+let generateHtml = (htmlContent, location) => {
+  location->Utils.outputFile(
+    htmlContent,
+    ~options=Utils.writeFileOptions(~encoding=#"utf-8", ()),
+    (),
+  )
 }
 
-let ocamlToHtml = (path, output, filename, meta): Promise.t<metadataPage> => {
-  let file = %raw("
-      async function(path, output, filename, props) {
-        let data = await import(path)
-        const status = data.main ? true : false
-        if (status) {
-          return { status, filename, origin: path, output, content: data.main(props) }
-        } else {
-          return { status, filename, origin: path, output, content: `` }
-        }
+let parseML = (path, filename, metadata): Promise.t<metadataML> => {
+  let process = %raw("
+    async function(path, filename, metadata) {
+      const res = await import(path)
+      const status = res.main ? true : false
+      if (status) {
+        return { status, filename, path, content: res.main(metadata) }
+      } else {
+        return { status, filename, path, content: `` }
       }
-    ")
-  file(path, output, filename, meta)
+    }
+  ")
+  process(path, filename, metadata)
 }
 
-let generatePages = (pagesPath, metadata) => {
-  pagesPath
-  ->then(paths => {
-    paths
-    ->Js.Array2.map(path => {
-      let filename = path->Node.Path.basename_ext(".mjs")
-      let specialPage = switch filename {
-      | "index"
-      | "404"
-      | "500" => true
-      | _ => false
-      }
-      let outputPath =
-        path
-        ->Js.String2.replace(filename, !specialPage ? "index" : filename)
-        ->Js.String2.replace(".mjs", ".html")
-        ->Js.String2.replace(
-          [rootPath, "src", "pages"]->Node.Path.join,
-          [rootPath, defaultConfig.folder.output, specialPage ? "" : filename]->Node.Path.join,
-        )
-      path->ocamlToHtml(outputPath, filename, metadata)
-    })
-    ->Promise.all
-  })
-  ->then(res => res->Js.Array2.map(x => x->generateHtml)->Promise.all)
-}
-
-let mdToHtml = data => {
+let parseMarkdown = data => {
   open Utils.Unified
 
   unified()
@@ -119,125 +89,144 @@ let mdToHtml = data => {
   ->then(res => res["value"]->resolve)
 }
 
-let mdToPages = () => {
+let renderLayout = () => ()
+let renderPages = () => ()
+let renderCollections = () => {
   // Check config collections
-  let getCollectionConfig = dataYaml => {
-    dataYaml
+  let getCollectionConfig = path => {
+    path
+    ->readFileSync("utf-8")
+    ->yamlLoad
     ->Js.toOption
     ->Belt.Option.flatMap(content => content["collections"])
-    ->Belt.Option.flatMap(collections => collections)
   }
 
-  // set data collections if exist will return data within array, or else return empty array
-  let transformCollection = () =>
-    switch configIsExist.contents {
-    | true =>
-      switch configPath->readFileSync("utf-8")->yamlLoad->getCollectionConfig {
-      | Some(x) =>
-        x->Js.Array2.map(path => {
-          let obj = obj_entries(path)->Utils.flatten
-          let pathResolve = path => [rootPath]->Js.Array2.concat(path)->Node.Path.join
-          // create temporary metadata to simplify the process
-          {
-            "collection": obj[0],
-            "path": [obj[1]]->pathResolve,
-            "pattern": [obj[1], "*.md"]->pathResolve,
-          }
-        })
+  let processCollectionConfig = () => {
+    let readConfig = () => {
+      switch configPath->getCollectionConfig {
+      | Some(collections) => collections
       | None => []
       }
-    | false => []
     }
 
-  let collectionConfig = () =>
-    transformCollection()->Js.Array2.map(data => {
-      data["pattern"]
-      ->globby
-      ->then(res =>
-        {
-          "collection": data["collection"],
-          "path": data["path"],
-          "files": res,
-        }->resolve
-      )
+    switch configIsExist.contents {
+    | true => readConfig()
+    | false => []
+    }
+  }
+
+  let processCollectionMetadata = () =>
+    configPath
+    ->readFileSync("utf-8")
+    ->yamlLoad
+    ->processCollectionConfig
+    ->obj_entries
+    ->Js.Array2.map(collection => {
+      open Node.Path
+      {
+        "name": collection[0],
+        "layout": [rootPath, "src", "layouts", collection[1]["layout"] ++ ".mjs"]->join->normalize,
+        "source": [rootPath, collection[1]["source"]]->join->normalize,
+        "pattern": [rootPath, collection[1]["source"], "*.md"]->join->normalize,
+      }
     })
 
-  let jsObjFile = %raw("
-    function(collection, filename, content, raw, internal, matter) {
-      const newMatter = {...matter, content}
+  let transformObj = %raw("
+    function(metadata, page, md, matter) {
+      const newMatter = {...matter, content: md}
       return {
-        ...internal,
+        ...metadata,
         ...newMatter,
-        name: `${collection}/${filename}`,
-        filename,
-        raw
+        page
       }
     }
   ")
 
-  collectionConfig()
-  ->Promise.all
-  ->then(res =>
-    res
-    ->Js.Array2.mapi((data, dataIndex) => {
-      data["files"]->Js.Array2.mapi((file, _) => {
-        let filename = file->Node.Path.basename_ext(".md")
-        file
-        ->Utils.readFile("utf-8")
-        ->then(raw => {
-          let dataMatter = raw->matter
-          dataMatter["content"]
-          ->mdToHtml
-          ->then(content =>
-            data["collection"]
-            ->jsObjFile(filename, content, raw, res[dataIndex], dataMatter)
-            ->resolve
-          )
+  let processCollectionPages = metadata => {
+    metadata["pattern"]
+    ->globby
+    ->then(pages => {
+      pages
+      ->Js.Array2.map(page => {
+        Utils.readFile(page, "utf-8")->then(raw => {
+          // metadata,
+          let matter = raw->matter
+          matter["content"]
+          ->parseMarkdown
+          ->then(mdHtml => {
+            globalMetadata := transformObj(metadata, page, mdHtml, matter)
+            parseML(metadata["layout"], page, transformObj(metadata, page, mdHtml, matter))
+          })
         })
       })
+      ->resolve
     })
-    ->Utils.flatten
-    ->Promise.all
-  )
-  ->then(metas => {
-    metas
-    ->Js.Array2.map(meta => {
-      let filename = meta["name"]
-      let path = [rootPath, defaultConfig.folder.output, filename, "index.html"]->Node.Path.join
-      path->Utils.outputFile(
-        ~options=Utils.writeFileOptions(~encoding=#"utf-8", ()),
-        meta["content"],
-        (),
-      )
-    })
-    ->Promise.all
-    ->then(_ => metas->resolve)
+    ->then(eachReadFile => eachReadFile->Promise.all)
+  }
+
+  processCollectionMetadata()
+  ->Js.Array2.map(metadata => {
+    metadata->processCollectionPages
   })
-}
-
-let copyAssetsAndPublic = () => {
-  let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
-
-  let copyAssets = () =>
-    ["src", defaultConfig.folder.assets]
-    ->path
-    ->Utils.copy(["dist", defaultConfig.folder.assets]->path)
-
-  let copyPublic = () => ["src", "public"]->path->Utils.copy(["dist"]->path)
-  // Fs-extra have issue about race codition on copy function
-  // solved with ensureDir that will check availability of dist folder
-  // related issue:
-  // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
-  //
-  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
-}
-
-let run = () => {
-  outputPath->cleanOutputFolder
-  checkConfig()
-  [copyAssetsAndPublic(), mdToPages()->then(res => pagesPath->generatePages(res))]
   ->Promise.all
-  ->ignore
+  ->then(data => data->Utils.flatten->Js.log->resolve)
 }
 
-run()
+let copyAssets = () => ()
+let run = () => {
+  renderCollections()->then(_ => Js.log(globalMetadata)->resolve)
+}
+
+// let generatePages = (pagesPath, metadata) => {
+//   pagesPath
+//   ->then(paths => {
+//     paths
+//     ->Js.Array2.map(path => {
+//       let filename = path->Node.Path.basename_ext(".mjs")
+//       let specialPage = switch filename {
+//       | "index"
+//       | "404"
+//       | "500" => true
+//       | _ => false
+//       }
+//       let outputPath =
+//         path
+//         ->Js.String2.replace(filename, !specialPage ? "index" : filename)
+//         ->Js.String2.replace(".mjs", ".html")
+//         ->Js.String2.replace(
+//           [rootPath, "src", "pages"]->Node.Path.join,
+//           [rootPath, defaultConfig.folder.output, specialPage ? "" : filename]->Node.Path.join,
+//         )
+//       path->ocamlToHtml(outputPath, filename, metadata)
+//     })
+//     ->Promise.all
+//   })
+//   ->then(res => res->Js.Array2.map(x => x->generateHtml)->Promise.all)
+// }
+
+// let copyAssetsAndPublic = () => {
+//   let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
+
+//   let copyAssets = () =>
+//     ["src", defaultConfig.folder.assets]
+//     ->path
+//     ->Utils.copy(["dist", defaultConfig.folder.assets]->path)
+
+//   let copyPublic = () => ["src", "public"]->path->Utils.copy(["dist"]->path)
+//   // Fs-extra have issue about race codition on copy function
+//   // solved with ensureDir that will check availability of dist folder
+//   // related issue:
+//   // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
+//   //
+//   Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
+// }
+
+// let run = () => {
+//   outputPath->cleanOutputFolder
+//   checkConfig()
+//   [copyAssetsAndPublic(), mdToPages()->then(res => pagesPath->generatePages(res))]
+//   ->Promise.all
+//   ->ignore
+// }
+
+// run()
