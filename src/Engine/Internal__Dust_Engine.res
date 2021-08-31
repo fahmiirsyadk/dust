@@ -7,6 +7,7 @@ open Promise
 @module("globby") external globby: string => Promise.t<array<string>> = "globby"
 @scope("JSON") @val external parse: string => 'a = "parse"
 @scope("Object") @val external obj_entries: 'a => array<'a> = "entries"
+@scope("Object") @val external obj_keys: 'a => array<'a> = "keys"
 @module("gray-matter") external matter: string => 'a = "default"
 
 type folderConfig = {
@@ -17,7 +18,6 @@ type folderConfig = {
   base: string,
 }
 
-type globalMetadata<'a> = array<'a>
 type config = {folder: folderConfig}
 
 type metadataML = {
@@ -38,7 +38,7 @@ let defaultConfig = {
 }
 
 let configIsExist = ref(true)
-let globalMetadata: globalMetadata<unit> = []
+let globalMetadata: array<{}> = []
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
 let pagesPath = [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
@@ -132,7 +132,7 @@ let renderCollections = () => {
       }
     })
 
-  let transformObj = %raw("
+  let transformMeta = %raw("
     function(metadata, page, md, matter) {
       const newMatter = {...matter, content: md}
       const url = Path.join(`/`, metadata.name, Path.basename(page, `.md`))
@@ -145,7 +145,7 @@ let renderCollections = () => {
     }
   ")
 
-  let processCollectionPages = (metadata: 'a) => {
+  let processCollectionPages = metadata => {
     metadata["pattern"]
     ->globby
     ->then(pages => {
@@ -156,7 +156,7 @@ let renderCollections = () => {
           matter["content"]
           ->parseMarkdown
           ->then(mdHtml => {
-            let obj = transformObj(metadata, page, mdHtml, matter)
+            let obj = transformMeta(metadata, page, mdHtml, matter)
             let _ = globalMetadata->Js.Array2.push(obj)
             parseML(metadata["layout"], page, obj)
           })
@@ -174,9 +174,26 @@ let renderCollections = () => {
   ->Promise.all
 }
 
+let sortGlobalCollectionMeta = %raw("
+  function(metadata) {
+    let obj = {};
+
+    metadata.forEach(data => {
+      if(obj.hasOwnProperty(data.name)) {
+        obj[`${data.name}`] = [{...obj[`${data.name}`]}, data]
+      } else {
+        obj = { ...obj, [data.name]: data }
+      }
+    })
+    return obj
+  }
+")
+
 let copyAssets = () => ()
 let run = () => {
-  renderCollections()->then(_ => Js.log(globalMetadata)->resolve)
+  renderCollections()
+  ->then(_ => globalMetadata->sortGlobalCollectionMeta->resolve)
+  ->then(global => global->Js.log->resolve)
 }
 
 // let generatePages = (pagesPath, metadata) => {
