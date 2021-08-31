@@ -17,6 +17,7 @@ type folderConfig = {
   base: string,
 }
 
+type globalMetadata<'a> = array<'a>
 type config = {folder: folderConfig}
 
 type metadataML = {
@@ -37,7 +38,7 @@ let defaultConfig = {
 }
 
 let configIsExist = ref(true)
-let globalMetadata = ref("")
+let globalMetadata: globalMetadata<unit> = []
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
 let pagesPath = [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
@@ -134,28 +135,30 @@ let renderCollections = () => {
   let transformObj = %raw("
     function(metadata, page, md, matter) {
       const newMatter = {...matter, content: md}
+      const url = Path.join(`/`, metadata.name, Path.basename(page, `.md`))
       return {
         ...metadata,
         ...newMatter,
+        url,
         page
       }
     }
   ")
 
-  let processCollectionPages = metadata => {
+  let processCollectionPages = (metadata: 'a) => {
     metadata["pattern"]
     ->globby
     ->then(pages => {
       pages
       ->Js.Array2.map(page => {
         Utils.readFile(page, "utf-8")->then(raw => {
-          // metadata,
           let matter = raw->matter
           matter["content"]
           ->parseMarkdown
           ->then(mdHtml => {
-            globalMetadata := transformObj(metadata, page, mdHtml, matter)
-            parseML(metadata["layout"], page, transformObj(metadata, page, mdHtml, matter))
+            let obj = transformObj(metadata, page, mdHtml, matter)
+            let _ = globalMetadata->Js.Array2.push(obj)
+            parseML(metadata["layout"], page, obj)
           })
         })
       })
@@ -169,7 +172,6 @@ let renderCollections = () => {
     metadata->processCollectionPages
   })
   ->Promise.all
-  ->then(data => data->Utils.flatten->Js.log->resolve)
 }
 
 let copyAssets = () => ()
