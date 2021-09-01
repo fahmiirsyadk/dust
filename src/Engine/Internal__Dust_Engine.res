@@ -63,19 +63,20 @@ let generateHtml = (htmlContent, location) => {
   )
 }
 
-let parseML = (path, filename, metadata): Promise.t<metadataML> => {
+let parseML = (metadata, root, output, filename, obj): Promise.t<metadataML> => {
   let process = %raw("
-    async function(path, filename, metadata) {
-      const res = await import(path)
+    async function(metadata, root, output, filename, obj) {
+      const res = await import(metadata.layout)
       const status = res.main ? true : false
+      const path = Path.join(root, output, metadata.name, Path.basename(filename, `.md`) + `.html`)
       if (status) {
-        return { status, filename, path, content: res.main(metadata) }
+        return { status, filename, path, content: res.main(obj) }
       } else {
         return { status, filename, path, content: `` }
       }
     }
   ")
-  process(path, filename, metadata)
+  process(metadata, root, output, filename, obj)
 }
 
 let parseMarkdown = data => {
@@ -90,8 +91,12 @@ let parseMarkdown = data => {
   ->then(res => res["value"]->resolve)
 }
 
-let renderLayout = () => ()
-let renderPages = () => ()
+// let renderPages = () => {
+
+// }
+
+
+
 let renderCollections = () => {
   // Check config collections
   let getCollectionConfig = path => {
@@ -158,13 +163,17 @@ let renderCollections = () => {
           ->then(mdHtml => {
             let obj = transformMeta(metadata, page, mdHtml, matter)
             let _ = globalMetadata->Js.Array2.push(obj)
-            parseML(metadata["layout"], page, obj)
+            parseML(metadata, rootPath, defaultConfig.folder.output, page, obj)
           })
         })
       })
       ->resolve
     })
     ->then(eachReadFile => eachReadFile->Promise.all)
+    ->then(collections => [collections]->Utils.flatten->resolve)
+    ->then(collections => collections->Js.Array2.map(collection => {
+      	collection.content->generateHtml(collection.path)
+    })->Promise.all)
   }
 
   processCollectionMetadata()
@@ -177,7 +186,6 @@ let renderCollections = () => {
 let sortGlobalCollectionMeta = %raw("
   function(metadata) {
     let obj = {};
-
     metadata.forEach(data => {
       if(obj.hasOwnProperty(data.name)) {
         obj[`${data.name}`] = [{...obj[`${data.name}`]}, data]
@@ -189,11 +197,25 @@ let sortGlobalCollectionMeta = %raw("
   }
 ")
 
-let copyAssets = () => ()
+let copyAssets = () => {
+  let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
+
+  let copyAssets = () =>
+    ["src", defaultConfig.folder.assets]
+    ->path
+    ->Utils.copy(["dist", defaultConfig.folder.assets]->path)
+
+  let copyPublic = () => ["src", "public"]->path->Utils.copy(["dist"]->path)
+  // Fs-extra have issue about race codition on copy function
+  // solved with ensureDir that will check availability of dist folder
+  // related issue:
+  // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
+  //
+  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
+}
+
 let run = () => {
   renderCollections()
-  ->then(_ => globalMetadata->sortGlobalCollectionMeta->resolve)
-  ->then(global => global->Js.log->resolve)
 }
 
 // let generatePages = (pagesPath, metadata) => {
@@ -224,20 +246,7 @@ let run = () => {
 // }
 
 // let copyAssetsAndPublic = () => {
-//   let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
 
-//   let copyAssets = () =>
-//     ["src", defaultConfig.folder.assets]
-//     ->path
-//     ->Utils.copy(["dist", defaultConfig.folder.assets]->path)
-
-//   let copyPublic = () => ["src", "public"]->path->Utils.copy(["dist"]->path)
-//   // Fs-extra have issue about race codition on copy function
-//   // solved with ensureDir that will check availability of dist folder
-//   // related issue:
-//   // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
-//   //
-//   Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
 // }
 
 // let run = () => {
