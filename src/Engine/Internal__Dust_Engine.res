@@ -38,7 +38,7 @@ let defaultConfig = {
 }
 
 let configIsExist = ref(true)
-let globalMetadata: array<{}> = []
+let globalMetadata: array<{.}> = []
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
 let pagesPath = [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
@@ -63,7 +63,7 @@ let generateHtml = (htmlContent, location) => {
   )
 }
 
-let parseML = (metadata, root, output, filename, obj): Promise.t<metadataML> => {
+let parseMLCollection = (metadata, root, output, filename, obj): Promise.t<metadataML> => {
   let process = %raw("
     async function(metadata, root, output, filename, obj) {
       const res = await import(metadata.layout)
@@ -79,6 +79,21 @@ let parseML = (metadata, root, output, filename, obj): Promise.t<metadataML> => 
   process(metadata, root, output, filename, obj)
 }
 
+let parseMLPages = (metadata, path, output): Promise.t<metadataML> => {
+  let process = %raw("
+    async function(metadata, path, output) {
+      const res = await import(path)
+      const status = res.main ? true : false
+      if (status) {
+        return { status, path: output, content: res.main(metadata) }
+      } else {
+        return { status, path: output, content: `` }
+      }
+    }
+  ")
+  process(metadata, path, output)
+}
+
 let parseMarkdown = data => {
   open Utils.Unified
 
@@ -90,12 +105,6 @@ let parseMarkdown = data => {
   ->process(data)
   ->then(res => res["value"]->resolve)
 }
-
-// let renderPages = () => {
-
-// }
-
-
 
 let renderCollections = () => {
   // Check config collections
@@ -163,7 +172,7 @@ let renderCollections = () => {
           ->then(mdHtml => {
             let obj = transformMeta(metadata, page, mdHtml, matter)
             let _ = globalMetadata->Js.Array2.push(obj)
-            parseML(metadata, rootPath, defaultConfig.folder.output, page, obj)
+            parseMLCollection(metadata, rootPath, defaultConfig.folder.output, page, obj)
           })
         })
       })
@@ -171,9 +180,13 @@ let renderCollections = () => {
     })
     ->then(eachReadFile => eachReadFile->Promise.all)
     ->then(collections => [collections]->Utils.flatten->resolve)
-    ->then(collections => collections->Js.Array2.map(collection => {
-      	collection.content->generateHtml(collection.path)
-    })->Promise.all)
+    ->then(collections =>
+      collections
+      ->Js.Array2.map(collection => {
+        collection.content->generateHtml(collection.path)
+      })
+      ->Promise.all
+    )
   }
 
   processCollectionMetadata()
@@ -197,7 +210,7 @@ let sortGlobalCollectionMeta = %raw("
   }
 ")
 
-let copyAssets = () => {
+let copyAssetsAndPublic = () => {
   let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
 
   let copyAssets = () =>
@@ -211,50 +224,42 @@ let copyAssets = () => {
   // related issue:
   // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
   //
-  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
+  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)->ignore
+}
+
+let renderPages = (pagesPath, metadata) => {
+  pagesPath
+  ->then(paths => {
+    paths
+    ->Js.Array2.map(path => {
+      let pageFilename = path->Node.Path.basename_ext(".mjs")
+      let specialPage = switch pageFilename {
+      | "index"
+      | "404"
+      | "500" => true
+      | _ => false
+      }
+
+      let targetPath =
+        path
+        ->Js.String2.replace(pageFilename, !specialPage ? "index" : pageFilename)
+        ->Js.String2.replace(".mjs", ".html")
+        ->Js.String2.replace(
+          [rootPath, "src", "pages"]->Node.Path.join,
+          [rootPath, defaultConfig.folder.output, specialPage ? "" : pageFilename]->Node.Path.join,
+        )
+
+      metadata->sortGlobalCollectionMeta->parseMLPages(path, targetPath)
+    })
+    ->Promise.all
+  })
+  ->then(res => res->Js.Array2.filter(x => x.status === true)->resolve)
+  ->then(res => res->Js.Array2.map(x => x.content->generateHtml(x.path))->Promise.all)
 }
 
 let run = () => {
-  renderCollections()
+  checkConfig()
+  outputPath->cleanOutputFolder
+  copyAssetsAndPublic()
+  renderCollections()->then(_ => renderPages(pagesPath, globalMetadata))
 }
-
-// let generatePages = (pagesPath, metadata) => {
-//   pagesPath
-//   ->then(paths => {
-//     paths
-//     ->Js.Array2.map(path => {
-//       let filename = path->Node.Path.basename_ext(".mjs")
-//       let specialPage = switch filename {
-//       | "index"
-//       | "404"
-//       | "500" => true
-//       | _ => false
-//       }
-//       let outputPath =
-//         path
-//         ->Js.String2.replace(filename, !specialPage ? "index" : filename)
-//         ->Js.String2.replace(".mjs", ".html")
-//         ->Js.String2.replace(
-//           [rootPath, "src", "pages"]->Node.Path.join,
-//           [rootPath, defaultConfig.folder.output, specialPage ? "" : filename]->Node.Path.join,
-//         )
-//       path->ocamlToHtml(outputPath, filename, metadata)
-//     })
-//     ->Promise.all
-//   })
-//   ->then(res => res->Js.Array2.map(x => x->generateHtml)->Promise.all)
-// }
-
-// let copyAssetsAndPublic = () => {
-
-// }
-
-// let run = () => {
-//   outputPath->cleanOutputFolder
-//   checkConfig()
-//   [copyAssetsAndPublic(), mdToPages()->then(res => pagesPath->generatePages(res))]
-//   ->Promise.all
-//   ->ignore
-// }
-
-// run()
