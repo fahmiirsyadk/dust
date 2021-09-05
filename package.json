@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "bin": {
-    "dust": "./src/Utils/cli.mjs"
+    "dust": "src/dust.mjs"
   },
   "devDependencies": {
     "@ryyppy/rescript-promise": "^2.1.0",

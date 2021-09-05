@@ -224,7 +224,7 @@ let copyAssetsAndPublic = () => {
   // related issue:
   // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
   //
-  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)->ignore
+  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
 }
 
 let renderPages = (pagesPath, metadata) => {
@@ -259,7 +259,9 @@ let renderPages = (pagesPath, metadata) => {
 
 let run = () => {
   checkConfig()
-  outputPath->cleanOutputFolder
-  copyAssetsAndPublic()
-  renderCollections()->then(_ => renderPages(pagesPath, globalMetadata))
+  Promise.resolve(outputPath->cleanOutputFolder)
+  ->then(_ => renderCollections())
+  ->then(_ => renderPages(pagesPath, globalMetadata))
+  // ->then(_ => copyAssetsAndPublic())
+  ->ignore
 }

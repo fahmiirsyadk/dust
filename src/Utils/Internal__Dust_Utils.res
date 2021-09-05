@@ -12,10 +12,12 @@ external writeFileOptions: (
   ~encoding: encoding=?,
   unit,
 ) => writeFileOptions = ""
-@module("fs-extra") external outputFile: (string, string, ~options: writeFileOptions=?, unit) => Promise.t<unit> = "outputFile"
-@module("del") external delSync: (string) => unit = "sync"
+@module("fs-extra")
+external outputFile: (string, string, ~options: writeFileOptions=?, unit) => Promise.t<unit> =
+  "outputFile"
+@module("del") external delSync: string => unit = "sync"
 @module("fs-extra") external copy: (string, string) => Promise.t<unit> = "copy"
-@module("fs-extra") external ensureDir: (string) => Promise.t<unit> = "ensureDir"
+@module("fs-extra") external ensureDir: string => Promise.t<unit> = "ensureDir"
 @module("fs") @scope("promises")
 external readFile: (string, string) => Js.Promise.t<string> = "readFile"
 
@@ -63,4 +65,28 @@ module ErrorMessage = {
     | #warning(msg) => kleur->bold()->yellow(j`--- Just in case, warning ---\n>> ${msg} <<\n`)
     | #info(msg) => kleur->bold()->blue(j`--- Information for you ---\n>> ${msg} <<\n`)
     }->Js.log
+}
+
+module Chokidar = {
+  type t
+
+  type watchConfig = {
+    ignored: Js.Re.t,
+    persistent: bool,
+    ignoreInitial: bool,
+  }
+
+  @module external watcher: t = "chokidar"
+  @send external watch: (t, string, watchConfig) => t = "watch"
+  @send external on: (t, string, 'a => unit) => unit = "on"
+}
+
+module LiveServer = {
+  type t
+  type serverConfig = {
+    root: string,
+    logLevel: int,
+  }
+  @module("live-server") external server: t = "default"
+  @send external start: (t, serverConfig) => unit = "start"
 }
