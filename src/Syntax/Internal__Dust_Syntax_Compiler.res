@@ -32,7 +32,7 @@ let render = (tagType, tag, attrs, children) => {
 
 // transform function into proper html attribute syntax
 let attrFormat = (typeAttr) => {
-  let transform = (prop, attr) => j` $attr="$prop"`
+  let transform = (attr, prop) => j` $attr="$prop"`
   switch typeAttr {
   | AttrString(attr, prop) => transform(attr, prop)
   | AttrInt(attr, prop) => prop->Js.Int.toString->transform(attr)
