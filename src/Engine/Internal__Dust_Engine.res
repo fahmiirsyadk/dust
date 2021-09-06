@@ -267,4 +267,5 @@ let renderPages = (pagesPath, metadata) => {
 let run = () => {
   checkConfig()
   renderCollections()->then(_ => renderPages(pagesPath, globalMetadata))
+  ->ignore
 }

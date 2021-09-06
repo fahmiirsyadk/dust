@@ -17,6 +17,7 @@
     "gray-matter": "^4.0.3",
     "kleur": "^4.1.4",
     "live-server": "^1.2.1",
+    "recursive-copy": "^2.0.13",
     "rehype-stringify": "^9.0.1",
     "remark-gfm": "^2.0.0",
     "remark-parse": "^10.0.0",
