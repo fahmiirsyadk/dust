@@ -77,7 +77,7 @@ let parseMLCollection = (metadata, root, output, filename, obj): Promise.t<metad
 
       const res = await importFresh()
       const status = res.main ? true : false
-      const path = Path.join(root, output, metadata.name, Path.basename(filename, `.md`) + `.html`)
+      const path = Path.join(root, output, metadata.name, Path.basename(filename, `.md`), `index.html`)
       if (status) {
         return { status, filename, path, content: res.main(obj) }
       } else {
