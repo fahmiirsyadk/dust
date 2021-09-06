@@ -21,6 +21,7 @@ external outputFile: (string, string, ~options: writeFileOptions=?, unit) => Pro
 @module("fs") @scope("promises")
 external readFile: (string, string) => Js.Promise.t<string> = "readFile"
 @module("fs-extra") external emptyDirSync: string => unit = "emptyDirSync"
+@module("fs-extra") external emptyDir: string => Promise.t<unit> = "emptyDir"
 @module("recursive-copy") external recCopy: (string, string) => Promise.t<unit> = "default"
 let flatten = (arr: array<array<'a>>): array<'a> => arr->Array.to_list->Array.concat
 
@@ -74,13 +75,12 @@ module Chokidar = {
   @obj
   type watchConfig = {
     ignored: string,
-    persistent: bool,
     ignoreInitial: bool,
   }
 
   @module external watcher: t = "chokidar"
   @send external watch: (t, string, watchConfig) => t = "watch"
-  @send external on: (t, string, ('a, 'b) => unit) => t = "on"
+  @send external on: (t, string, 'a => unit) => t = "on"
 }
 
 module LiveServer = {

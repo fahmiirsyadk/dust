@@ -41,7 +41,8 @@ let configIsExist = ref(true)
 let globalMetadata: array<{.}> = []
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
-let pagesPath = [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
+let pagesPath = () => [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
+
 // Need to change btw
 let outputPath = [rootPath, defaultConfig.folder.output]->Node.Path.join
 
@@ -54,7 +55,7 @@ let checkConfig = () => {
 }
 
 let cleanOutputFolder = () => {
-  Utils.emptyDirSync(outputPath)
+  Utils.emptyDir(outputPath)
 }
 
 let generateHtml = (htmlContent, location) => {
@@ -229,9 +230,9 @@ let copyAssetsAndPublic = () => {
   let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
 
   let assets = () => ["src", "assets"]->path->Utils.recCopy(["dist", "assets"]->path)
-  let public = () => ["src", "public"]->path->Utils.recCopy(["dist"]->path)
+  let public = () => ["src", "public"]->path->Utils.copy(["dist"]->path)
 
-  Utils.ensureDir(["dist"]->path)->then(_ => [assets(), public()]->Promise.all)
+  [assets(), public()]->Promise.all
 }
 
 let renderPages = (pagesPath, metadata) => {
@@ -266,6 +267,8 @@ let renderPages = (pagesPath, metadata) => {
 
 let run = () => {
   checkConfig()
-  renderCollections()->then(_ => renderPages(pagesPath, globalMetadata))
-  ->ignore
+  [
+    Utils.ensureDir(outputPath)->then(() => copyAssetsAndPublic()),
+    renderCollections()->then(_ => renderPages(pagesPath(), globalMetadata)),
+  ]->Promise.all
 }

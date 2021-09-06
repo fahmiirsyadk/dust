@@ -1,28 +1,30 @@
 open Internal__Dust_Engine
+open Promise
 
 let outputPath = [Node.Process.cwd(), "dist"]->Node.Path.join
 let startPath = [Node.Process.cwd(), "src"]->Node.Path.join
 
 let initialScript = () => {
-  cleanOutputFolder()
-  run()
+  cleanOutputFolder()->then(_ => run())
 }
 
 let serverRun = () => {
   open Utils.Chokidar
 
   let config = {
-    ignored: "src/**/*.mjs",
-    persistent: true,
+    ignored: "**/src/**/*.mjs",
     ignoreInitial: true,
   }
 
   watcher
   ->watch(startPath, config)
-  ->on("all", (_, path) => {
-    Js.log(path)
-    cleanOutputFolder()
-    run()
+  ->on("add", path => {
+    Js.log("adding: " ++ path)
+    initialScript()->ignore
+  })
+  ->on("change", path => {
+    Js.log("changing: " ++ path)
+    initialScript()->ignore
   })
 }
 
@@ -40,13 +42,8 @@ let exec = () => {
 
   switch command {
   | "watch"
-  | "w" => {
-      initialScript()
-      watcher()
-    }
-  | _ => {
-      initialScript()
-      serverRun()
-    }
+  | "w" =>
+    initialScript()->then(_ => watcher()->resolve)
+  | _ => initialScript()->then(_ => watcher()->resolve)
   }
 }
