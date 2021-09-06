@@ -53,7 +53,9 @@ let checkConfig = () => {
   }
 }
 
-let cleanOutputFolder = folder => Utils.delSync(folder)
+let cleanOutputFolder = () => {
+  Utils.emptyDirSync(outputPath)
+}
 
 let generateHtml = (htmlContent, location) => {
   location->Utils.outputFile(
@@ -66,7 +68,13 @@ let generateHtml = (htmlContent, location) => {
 let parseMLCollection = (metadata, root, output, filename, obj): Promise.t<metadataML> => {
   let process = %raw("
     async function(metadata, root, output, filename, obj) {
-      const res = await import(metadata.layout)
+      
+      async function importFresh() {
+        const cache = `${metadata.layout}?update=${Date.now()}`
+        return (await import(cache))
+      }
+
+      const res = await importFresh()
       const status = res.main ? true : false
       const path = Path.join(root, output, metadata.name, Path.basename(filename, `.md`) + `.html`)
       if (status) {
@@ -82,8 +90,15 @@ let parseMLCollection = (metadata, root, output, filename, obj): Promise.t<metad
 let parseMLPages = (metadata, path, output): Promise.t<metadataML> => {
   let process = %raw("
     async function(metadata, path, output) {
-      const res = await import(path)
+      
+      async function importFresh() {
+        const cache = `${path}?update=${Date.now()}`
+        return (await import(cache))
+      }
+
+      const res = await importFresh()      
       const status = res.main ? true : false
+
       if (status) {
         return { status, path: output, content: res.main(metadata) }
       } else {
@@ -213,18 +228,10 @@ let sortGlobalCollectionMeta = %raw("
 let copyAssetsAndPublic = () => {
   let path = x => [rootPath]->Js.Array2.concat(x)->Node.Path.join
 
-  let copyAssets = () =>
-    ["src", defaultConfig.folder.assets]
-    ->path
-    ->Utils.copy(["dist", defaultConfig.folder.assets]->path)
+  let assets = () => ["src", "assets"]->path->Utils.recCopy(["dist", "assets"]->path)
+  let public = () => ["src", "public"]->path->Utils.recCopy(["dist"]->path)
 
-  let copyPublic = () => ["src", "public"]->path->Utils.copy(["dist"]->path)
-  // Fs-extra have issue about race codition on copy function
-  // solved with ensureDir that will check availability of dist folder
-  // related issue:
-  // https://github.com/serverless/serverless/commit/548bd986e4dafcae207ae80c3a8c3f956fbce037
-  //
-  Utils.ensureDir(["dist"]->path)->then(_ => [copyAssets(), copyPublic()]->Promise.all)
+  Utils.ensureDir(["dist"]->path)->then(_ => [assets(), public()]->Promise.all)
 }
 
 let renderPages = (pagesPath, metadata) => {
@@ -259,9 +266,5 @@ let renderPages = (pagesPath, metadata) => {
 
 let run = () => {
   checkConfig()
-  Promise.resolve(outputPath->cleanOutputFolder)
-  ->then(_ => renderCollections())
-  ->then(_ => renderPages(pagesPath, globalMetadata))
-  // ->then(_ => copyAssetsAndPublic())
-  ->ignore
+  renderCollections()->then(_ => renderPages(pagesPath, globalMetadata))
 }
