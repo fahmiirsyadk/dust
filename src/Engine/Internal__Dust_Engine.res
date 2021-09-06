@@ -250,13 +250,15 @@ let renderPages = (pagesPath, metadata) => {
 
       let targetPath =
         path
-        ->Js.String2.replace(pageFilename, !specialPage ? "index" : pageFilename)
+        ->Js.String2.replace(
+          pageFilename,
+          !specialPage ? [pageFilename, "index"]->Node.Path.join : pageFilename,
+        )
         ->Js.String2.replace(".mjs", ".html")
         ->Js.String2.replace(
           [rootPath, "src", "pages"]->Node.Path.join,
-          [rootPath, defaultConfig.folder.output, specialPage ? "" : pageFilename]->Node.Path.join,
+          [rootPath, defaultConfig.folder.output]->Node.Path.join,
         )
-
       metadata->sortGlobalCollectionMeta->parseMLPages(path, targetPath)
     })
     ->Promise.all
