@@ -176,6 +176,9 @@ let renderCollections = () => {
   ")
 
   let processCollectionPages = metadata => {
+    // Make sure globalMetadata values are empty
+    let _ = globalMetadata->Js.Array2.removeCountInPlace(~pos=0, ~count=globalMetadata->Js.Array2.length)
+
     metadata["pattern"]
     ->globby
     ->then(pages => {
