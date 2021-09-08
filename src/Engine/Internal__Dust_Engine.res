@@ -41,7 +41,8 @@ let configIsExist = ref(true)
 let globalMetadata: array<{.}> = []
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
-let pagesPath = () => [rootPath, "src", "pages", "**", "*.mjs"]->Node.Path.join->globby
+let pagesPath = [rootPath, "src", "pages"]->Node.Path.join
+let pagesPathGlob = [pagesPath, "**", "*.mjs"]->Node.Path.join
 
 // Need to change btw
 let outputPath = [rootPath, defaultConfig.folder.output]->Node.Path.join
@@ -122,7 +123,7 @@ let parseMarkdown = data => {
   ->then(res => res["value"]->resolve)
 }
 
-let renderCollections = () => {
+let renderCollections = (~isMetaOnly, ()) => {
   // Check config collections
   let getCollectionConfig = path => {
     path
@@ -177,7 +178,8 @@ let renderCollections = () => {
 
   let processCollectionPages = metadata => {
     // Make sure globalMetadata values are empty
-    let _ = globalMetadata->Js.Array2.removeCountInPlace(~pos=0, ~count=globalMetadata->Js.Array2.length)
+    let _ =
+      globalMetadata->Js.Array2.removeCountInPlace(~pos=0, ~count=globalMetadata->Js.Array2.length)
 
     metadata["pattern"]
     ->globby
@@ -200,11 +202,15 @@ let renderCollections = () => {
     ->then(eachReadFile => eachReadFile->Promise.all)
     ->then(collections => [collections]->Utils.flatten->resolve)
     ->then(collections =>
-      collections
-      ->Js.Array2.map(collection => {
-        collection.content->generateHtml(collection.path)
-      })
-      ->Promise.all
+      switch isMetaOnly {
+      | true => [()]->resolve
+      | false =>
+        collections
+        ->Js.Array2.map(collection => {
+          collection.content->generateHtml(collection.path)
+        })
+        ->Promise.all
+      }
     )
   }
 
@@ -270,10 +276,56 @@ let renderPages = (pagesPath, metadata) => {
   ->then(res => res->Js.Array2.map(x => x.content->generateHtml(x.path))->Promise.all)
 }
 
+// first build
 let run = () => {
   checkConfig()
   [
     Utils.ensureDir(outputPath)->then(() => copyAssetsAndPublic()),
-    renderCollections()->then(_ => renderPages(pagesPath(), globalMetadata)),
+    renderCollections(~isMetaOnly=false, ())->then(_ =>
+      renderPages(pagesPathGlob->globby, globalMetadata)
+    ),
   ]->Promise.all
+}
+
+// update
+let update = path => {
+  checkConfig()
+  let replacePath = origin => origin->Js.String2.replace("src", "dist")
+  let replacePathAndRemove = origin => origin->Js.String2.replace("src", "dist")->Utils.remove
+  let replaceFile = (origin, target) => {
+    origin->Js.String2.includes(target)
+      ? {
+          let newPath = origin->replacePath
+          newPath->Utils.remove->then(_ => path->Utils.recCopy(newPath))->ignore
+        }
+      : ()
+  }
+
+  // process assets
+  path->replaceFile(defaultConfig.folder.assets)
+  path->replaceFile("public")
+  // process pages
+  let filename = path->Node.Path.basename
+  let dataPagesTuple = (
+    filename->Js.String2.includes(".md"),
+    filename->Js.String2.includes(".ml"),
+    path->Js.String2.includes(pagesPath),
+  )
+  switch dataPagesTuple {
+  | (true, false, false) =>
+    path->replacePathAndRemove->then(_ => renderCollections(~isMetaOnly=false, ()))->ignore
+  | (false, true, true) =>
+    path
+    ->replacePathAndRemove
+    ->then(_ => renderCollections(~isMetaOnly=true, ()))
+    ->then(_ => renderPages(pagesPathGlob->globby, globalMetadata))
+    ->ignore
+  | (false, true, false) =>
+    path
+    ->replacePathAndRemove
+    ->then(_ => renderCollections(~isMetaOnly=false, ()))
+    ->then(_ => renderPages(pagesPathGlob->globby, globalMetadata))
+    ->ignore
+  | _ => Js.log("watching another ???")
+  }
 }

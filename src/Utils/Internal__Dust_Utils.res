@@ -22,6 +22,7 @@ external outputFile: (string, string, ~options: writeFileOptions=?, unit) => Pro
 external readFile: (string, string) => Js.Promise.t<string> = "readFile"
 @module("fs-extra") external emptyDirSync: string => unit = "emptyDirSync"
 @module("fs-extra") external emptyDir: string => Promise.t<unit> = "emptyDir"
+@module("fs-extra") external remove: string => Promise.t<unit> = "remove"
 @module("recursive-copy") external recCopy: (string, string) => Promise.t<unit> = "default"
 let flatten = (arr: array<array<'a>>): array<'a> => arr->Array.to_list->Array.concat
 

@@ -24,7 +24,7 @@ let serverRun = () => {
   })
   ->on("change", path => {
     Js.log("changing: " ++ path)
-    initialScript()->ignore
+    update(path)
   })
 }
 
