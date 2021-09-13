@@ -38,12 +38,16 @@ let watcher = () => {
 }
 
 let exec = () => {
-  let command = Node.Process.argv[2]
+  let command = try {
+    Node.Process.argv[2]
+  } catch {
+    | Invalid_argument(_) => ""
+  }
 
   switch command {
   | "watch"
   | "w" =>
-    initialScript()->then(_ => watcher()->resolve)
-  | _ => initialScript()->then(_ => watcher()->resolve)
+    initialScript()->then(_ => watcher()->resolve)->ignore
+  | _ => initialScript()->ignore
   }
 }
