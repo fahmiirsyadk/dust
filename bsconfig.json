@@ -1,6 +1,6 @@
 {
-  "name": "dust",
-  "version": "0.0.1",
+  "name": "@fahmiirsyadk/dust",
+  "version": "0.0.2",
   "sources": [
     {
       "dir": "src",

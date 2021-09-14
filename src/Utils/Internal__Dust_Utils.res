@@ -15,7 +15,6 @@ external writeFileOptions: (
 @module("fs-extra")
 external outputFile: (string, string, ~options: writeFileOptions=?, unit) => Promise.t<unit> =
   "outputFile"
-@module("del") external delSync: string => unit = "sync"
 @module("fs-extra") external copy: (string, string) => Promise.t<unit> = "copy"
 @module("fs-extra") external ensureDir: string => Promise.t<unit> = "ensureDir"
 @module("fs") @scope("promises")
