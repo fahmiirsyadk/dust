@@ -1,6 +1,6 @@
 {
-  "name": "dust",
-  "version": "1.0.0",
+  "name": "@fahmiirsyadk/dust",
+  "version": "0.0.1",
   "main": "index.js",
   "license": "MIT",
   "bin": {
@@ -36,5 +36,18 @@
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
-  }
+  },
+  "description": "static site generator with [Ocaml Syntax]-to-HTML based on rescript ( WIP )",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fahmiirsyadk/dust.git"
+  },
+  "keywords": [
+    "static-site-generator"
+  ],
+  "author": "fahmiirsyadk",
+  "bugs": {
+    "url": "https://github.com/fahmiirsyadk/dust/issues"
+  },
+  "homepage": "https://github.com/fahmiirsyadk/dust#readme"
 }
