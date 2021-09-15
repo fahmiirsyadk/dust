@@ -37,7 +37,6 @@ let defaultConfig = {
   },
 }
 
-let configIsExist = ref(true)
 let globalMetadata: array<{.}> = []
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
@@ -45,15 +44,8 @@ let pagesPath = [rootPath, "src", "pages"]->Node.Path.join
 let pagesPathGlob = [pagesPath, "**", "*.mjs"]->Node.Path.join
 
 // Need to change btw
+let configIsExist = configPath->existsSync
 let outputPath = [rootPath, defaultConfig.folder.output]->Node.Path.join
-
-let checkConfig = () => {
-  try {
-    let _ = ".dust.yml"->readFileSync("utf-8")
-  } catch {
-  | Js.Exn.Error(_) => configIsExist := false
-  }
-}
 
 let cleanOutputFolder = () => {
   Utils.emptyDir(outputPath)
@@ -141,7 +133,7 @@ let renderCollections = (~isMetaOnly, ()) => {
       }
     }
 
-    switch configIsExist.contents {
+    switch configIsExist {
     | true => readConfig()
     | false => []
     }
@@ -244,6 +236,30 @@ let copyAssetsAndPublic = () => {
   [assets(), public()]->Promise.all
 }
 
+let renderPage = (pagePath, metadata) => {
+  let pageFilename = pagePath->Node.Path.basename_ext(".mjs")
+  let specialPage = switch pageFilename {
+  | "index"
+  | "404"
+  | "500" => true
+  | _ => false
+  }
+
+  let targetPath =
+    pagePath
+    ->Js.String2.replace(
+      pageFilename,
+      !specialPage ? [pageFilename, "index"]->Node.Path.join : pageFilename,
+    )
+    ->Js.String2.replace(".mjs", ".html")
+    ->Js.String2.replace(
+      [rootPath, "src", "pages"]->Node.Path.join,
+      [rootPath, defaultConfig.folder.output]->Node.Path.join,
+    )
+  metadata->sortGlobalCollectionMeta->parseMLPages(pagePath, targetPath)
+  ->then(res => res.status === true ? res.content->generateHtml(res.path): ()->resolve)
+}
+
 let renderPages = (pagesPath, metadata) => {
   pagesPath
   ->then(paths => {
@@ -278,18 +294,23 @@ let renderPages = (pagesPath, metadata) => {
 
 // first build
 let run = () => {
-  checkConfig()
-  [
-    Utils.ensureDir(outputPath)->then(() => copyAssetsAndPublic()),
-    renderCollections(~isMetaOnly=false, ())->then(_ =>
-      renderPages(pagesPathGlob->globby, globalMetadata)
-    ),
-  ]->Promise.all
+  if configIsExist {
+    [
+      Utils.ensureDir(outputPath)->then(() => copyAssetsAndPublic()),
+      renderCollections(~isMetaOnly=false, ())->then(_ =>
+        renderPages(pagesPathGlob->globby, globalMetadata)
+      ),
+    ]->Promise.all
+  } else {
+    [
+      Utils.ensureDir(outputPath)->then(() => copyAssetsAndPublic()),
+      renderPages(pagesPathGlob->globby, globalMetadata),
+    ]->Promise.all
+  }
 }
 
 // update
 let update = path => {
-  checkConfig()
   let replacePath = origin => origin->Js.String2.replace("src", "dist")
   let replacePathAndRemove = origin => origin->Js.String2.replace("src", "dist")->Utils.remove
   let replaceFile = (origin, target) => {
@@ -318,13 +339,13 @@ let update = path => {
     path
     ->replacePathAndRemove
     ->then(_ => renderCollections(~isMetaOnly=true, ()))
-    ->then(_ => renderPages(pagesPathGlob->globby, globalMetadata))
+    ->then(_ => renderPage(path->Js.String2.replace(".ml", ".mjs"), globalMetadata))
     ->ignore
   | (false, true, false) =>
     path
     ->replacePathAndRemove
     ->then(_ => renderCollections(~isMetaOnly=false, ()))
-    ->then(_ => renderPages(pagesPathGlob->globby, globalMetadata))
+    ->then(_ => renderPage(path->Js.String2.replace(".ml", ".mjs"), globalMetadata))
     ->ignore
   | _ => Js.log("watching another ???")
   }
