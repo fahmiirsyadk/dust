@@ -25,9 +25,7 @@ let serverRun = () => {
     let _ = %raw("
       Object.keys(require.cache).forEach(function(id) {
         const path = require(`path`)
-        if(id.includes(`/home/fahmiirsyadk/Developments/dust/dust`) 
-          || id.includes(`/home/fahmiirsyadk/Developments/dust/src`) 
-          || id.includes(path.resolve(`./src/`))) 
+        if(id.includes(path.resolve(`./src/`))) 
         {
           delete require.cache[id]
         }

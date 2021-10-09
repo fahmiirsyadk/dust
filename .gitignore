@@ -6,6 +6,4 @@ node_modules
 lib/
 .vscode/
 
-src/Engine/*.mjs
-src/Syntax/*.mjs
-src/Utils/*.mjs
+src/*.js
