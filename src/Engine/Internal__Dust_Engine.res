@@ -41,9 +41,9 @@ let parseCollection = (meta, output, filename, props): metadataML => {
     const filepath = Path.join(output, meta.name, Path.basename(filename, `.md`), `index.html`)
     
     if(status) {
-      return { status, filename, filepath, content: res.main(props)}
+      return { status, filename, path: filepath, content: res.main(props)}
     } else {
-      return { status, filename, filepath, content: ``}
+      return { status, filename, path: filepath, content: ``}
     }
   }")
   process(meta, output, filename, props)
@@ -89,7 +89,7 @@ let renderCollections = () => {
     )
 
   let transformMeta = %raw("
-      function(metada, page, md, matter) {
+      function(metadata, page, md, matter) {
         const newMatter = {...matter, content: md}
         const url = Path.join(`/`, metadata.name, Path.basename(page, `.md`))
         return {
