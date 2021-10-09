@@ -1,8 +1,11 @@
+@scope("Object") @val external obj_keys: 'a => array<'a> = "keys"
 open Internal__Dust_Engine
 open Promise
 
-let outputPath = [Node.Process.cwd(), "dist"]->Node.Path.join
-let startPath = [Node.Process.cwd(), "src"]->Node.Path.join
+module Config = Internal__Dust_Config
+
+let outputPath = Config.getFolderOutput()
+let startPath = Config.getFolderBase()
 
 let initialScript = () => {
   cleanOutputFolder()->then(_ => run())
@@ -12,12 +15,25 @@ let serverRun = () => {
   open Utils.Chokidar
 
   let config = {
-    ignored: "**/src/**/*.mjs",
-    ignoreInitial: true,
+    ignored: "**/src/**/*.js",
+    ignoreInitial: false,
   }
 
   watcher
   ->watch(startPath, config)
+  ->on("all", _ => {
+    let _ = %raw("
+      Object.keys(require.cache).forEach(function(id) {
+        const path = require(`path`)
+        if(id.includes(`/home/fahmiirsyadk/Developments/dust/dust`) 
+          || id.includes(`/home/fahmiirsyadk/Developments/dust/src`) 
+          || id.includes(path.resolve(`./src/`))) 
+        {
+          delete require.cache[id]
+        }
+      })
+    ")
+  })
   ->on("add", path => {
     Js.log("adding: " ++ path)
     initialScript()->ignore
@@ -41,13 +57,19 @@ let exec = () => {
   let command = try {
     Node.Process.argv[2]
   } catch {
-    | Invalid_argument(_) => ""
+  | Invalid_argument(_) => ""
   }
 
   switch command {
   | "watch"
   | "w" =>
-    initialScript()->then(_ => watcher()->resolve)->ignore
+    initialScript()
+    ->then(_ => {
+      let _ = watcher()
+      resolve()
+    })
+    ->catch(err => Js.log(err)->resolve)
+    ->ignore
   | _ => initialScript()->ignore
   }
 }

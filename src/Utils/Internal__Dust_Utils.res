@@ -22,7 +22,7 @@ external readFile: (string, string) => Js.Promise.t<string> = "readFile"
 @module("fs-extra") external emptyDirSync: string => unit = "emptyDirSync"
 @module("fs-extra") external emptyDir: string => Promise.t<unit> = "emptyDir"
 @module("fs-extra") external remove: string => Promise.t<unit> = "remove"
-@module("recursive-copy") external recCopy: (string, string) => Promise.t<unit> = "default"
+@module external recCopy: (string, string) => Promise.t<unit> = "recursive-copy"
 let flatten = (arr: array<array<'a>>): array<'a> => arr->Array.to_list->Array.concat
 
 module Klaw = {
@@ -42,16 +42,16 @@ module Kleur = {
   @send external red: (t, 'a) => t = "red"
 }
 
-module Unified = {
-  type t
-  @module("remark-parse") external remarkParse: t = "default"
-  @module("remark-gfm") external remarkGfm: t = "default"
-  @module("remark-rehype") external rehype: t = "default"
-  @module("rehype-stringify") external stringify: t = "default"
-  @module("unified") external unified: unit => t = "unified"
-  @send external use: (t, 'a) => t = "use"
-  @send external process: (t, string) => Promise.t<'a> = "process"
-}
+// module Unified = {
+//   type t
+//   @module("remark-parse") external remarkParse: t = "default"
+//   @module("remark-gfm") external remarkGfm: t = "default"
+//   @module("remark-rehype") external rehype: t = "default"
+//   @module("rehype-stringify") external stringify: t = "default"
+//   @module("unified") external unified: unit => t = "unified"
+//   @send external use: (t, 'a) => t = "use"
+//   @send external process: (t, string) => Promise.t<'a> = "process"
+// }
 
 module ErrorMessage = {
   open Kleur
@@ -89,6 +89,6 @@ module LiveServer = {
     root: string,
     logLevel: int,
   }
-  @module("live-server") external server: t = "default"
+  @module external server: t = "live-server"
   @send external start: (t, serverConfig) => unit = "start"
 }

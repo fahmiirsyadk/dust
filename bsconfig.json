@@ -8,10 +8,10 @@
     }
   ],
   "package-specs": {
-    "module": "es6",
+    "module": "commonjs",
     "in-source": true
   },
-  "suffix": ".mjs",
+  "suffix": ".js",
   "namespace": "dust",
   "bs-dependencies": [
     "@ryyppy/rescript-promise"
