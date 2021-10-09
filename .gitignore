@@ -6,4 +6,4 @@ node_modules
 lib/
 .vscode/
 
-src/*.js
+src/**/*.js

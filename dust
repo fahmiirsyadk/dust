@@ -1,27 +1,3 @@
 #!/usr/bin/env node
-
-
-// const importMLLayout = (meta, output, filename, props) => {
-//   const path = require("path")
-  
-//   const modulePath = path.resolve(`${meta.layout}`)
-
-//   // delete previous cache
-//   delete require.cache[modulePath]
-  
-//   const res = require(modulePath)
-//   const status = res.main ? true : false
-//   const filepath = path.join(output, meta.name, path.basename(filename, `.md`), `index.html`)
-  
-//   if(status) {
-//     return { status, filename, filepath, content: res.main(props)}
-//   } else {
-//     return { status, filename, filepath, content: ``}
-//   }
-// }
-
-var modulePath = "./src/Utils/Internal__Dust_CLI.js"
-delete require.cache[modulePath]
-
-var engine = require(modulePath)
+var engine = require("./src/Utils/Internal__Dust_CLI.js")
 engine.exec()
