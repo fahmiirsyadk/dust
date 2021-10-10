@@ -1,6 +1,6 @@
 {
   "name": "@fahmiirsyadk/dust",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "main": "index.js",
   "license": "MIT",
   "bin": {
@@ -24,7 +24,7 @@
     "rescript": "^9.1.4"
   },
   "scripts": {
-    "dev": "rescript build -w -with-deps",
+    "dev": "rescript build -w",
     "clean": "rescript clean"
   },
   "description": "static site generator with [Ocaml Syntax]-to-HTML based on rescript ( WIP )",

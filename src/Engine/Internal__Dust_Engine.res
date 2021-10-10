@@ -60,8 +60,6 @@ let parsePages = (metadata, path, output): metadataML => {
       return { status, path: output, content: `` }
     }
   }")
-
-  let _ = process(metadata, path, output)
   process(metadata, path, output)
 }
 

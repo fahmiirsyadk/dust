@@ -18,7 +18,7 @@ let serverRun = () => {
     ignored: "**/src/**/*.js",
     ignoreInitial: true,
     awaitWriteFinish: {
-      stabilityThreshold: 300,
+      stabilityThreshold: 100,
       pollInterval: 100
     },
     depth: 99
