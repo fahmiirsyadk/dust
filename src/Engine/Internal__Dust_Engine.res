@@ -183,16 +183,14 @@ let run = () => {
   [pagePattern]
   ->fsglob
   ->then(paths => {
+    let listRenderPages = paths->Js.Array2.map(path => renderPage(path, globalMetadata))
+
     if Config.isConfigExist {
-      [
-        Utils.ensureDir(Config.getFolderOutput())->then(() => copyPublic()),
-        renderCollections()->then(_ => renderPage(paths[0], globalMetadata)),
-      ]->Promise.all
+      Utils.ensureDir(Config.getFolderOutput())->then(() => copyPublic())->ignore
+      renderCollections()->then(_ => listRenderPages->Promise.all)
     } else {
-      [
-        Utils.ensureDir(Config.getFolderOutput())->then(() => copyPublic()),
-        renderPage(paths[0], globalMetadata),
-      ]->Promise.all
+      Utils.ensureDir(Config.getFolderOutput())->then(() => copyPublic())->ignore
+      listRenderPages->Promise.all
     }
   })
 }
