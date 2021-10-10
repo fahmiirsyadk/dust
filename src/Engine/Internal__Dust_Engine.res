@@ -148,7 +148,10 @@ let sortGlobalCollectionMeta = %raw("
 let copyPublic = () => {
   let publicPath = [Config.getFolderBase(), "public"]->Node.Path.join
   publicPath->Node.Fs.existsSync
-    ? publicPath->Utils.recCopy([Config.rootPath, "dist"]->Node.Path.join)
+    ? publicPath->Utils.recCopy(
+        Config.getFolderOutput(),
+        {overwrite: true, dot: true, results: false},
+      )
     : resolve()
 }
 

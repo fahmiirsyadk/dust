@@ -5,6 +5,12 @@ type encoding = [
   | #"utf-8"
 ]
 
+type recursiveCopyOptions = {
+  overwrite: bool,
+  dot: bool,
+  results: bool
+}
+
 @obj
 external writeFileOptions: (
   ~mode: int=?,
@@ -22,7 +28,7 @@ external readFile: (string, string) => Js.Promise.t<string> = "readFile"
 @module("fs-extra") external emptyDirSync: string => unit = "emptyDirSync"
 @module("fs-extra") external emptyDir: string => Promise.t<unit> = "emptyDir"
 @module("fs-extra") external remove: string => Promise.t<unit> = "remove"
-@module external recCopy: (string, string) => Promise.t<unit> = "recursive-copy"
+@module external recCopy: (string, string, recursiveCopyOptions) => Promise.t<unit> = "recursive-copy"
 let flatten = (arr: array<array<'a>>): array<'a> => arr->Array.to_list->Array.concat
 
 module Klaw = {
