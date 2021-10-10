@@ -31,11 +31,8 @@ let generateHtml = (htmlContent, location) => {
 let parseCollection = (meta, output, filename, props): metadataML => {
   let process = %raw("
   function (meta, output, filename, props) {
-    const decache = require(`decache`)
-    let res = require(`${meta.layout}`)
-    
-    decache(`${meta.layout}`)
-    res = require(`${meta.layout}`)
+    const importFresh = require(`import-fresh`)
+    let res = importFresh(`${meta.layout}`)
     
     const status = res.main ? true : false
     const filepath = Path.join(output, meta.name, Path.basename(filename, `.md`), `index.html`)
@@ -52,11 +49,8 @@ let parseCollection = (meta, output, filename, props): metadataML => {
 let parsePages = (metadata, path, output): metadataML => {
   let process = %raw("
   function (meta, filepath, output) {
-    const decache = require(`decache`)
-    let res = require(filepath)
-    
-    decache(filepath)
-    res = require(filepath)
+    const importFresh = require(`import-fresh`)
+    let res = importFresh(filepath)
 
     const status = res.main ? true : false
     
@@ -226,16 +220,10 @@ let update = path => {
   )
   switch dataPagesTuple {
   | (true, false, false) => path->replacePathAndRemove->then(_ => renderCollections())->ignore
+  | (false, true, false) => path->replacePathAndRemove->then(_ => renderCollections())->ignore
   | (false, true, true) =>
     path
     ->replacePathAndRemove
-    ->then(_ => renderCollections())
-    ->then(_ => renderPage(path->Js.String2.replace(".ml", ".js"), globalMetadata))
-    ->ignore
-  | (false, true, false) =>
-    path
-    ->replacePathAndRemove
-    ->then(_ => renderCollections())
     ->then(_ => renderPage(path->Js.String2.replace(".ml", ".js"), globalMetadata))
     ->ignore
   | _ => Js.log("watching another ???")
