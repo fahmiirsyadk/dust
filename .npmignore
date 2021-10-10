@@ -1,4 +1,5 @@
 lib/**/*
 **/*.merlin
 **/*.lock
+*.js
 renovate.json
