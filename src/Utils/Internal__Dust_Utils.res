@@ -42,17 +42,6 @@ module Kleur = {
   @send external red: (t, 'a) => t = "red"
 }
 
-// module Unified = {
-//   type t
-//   @module("remark-parse") external remarkParse: t = "default"
-//   @module("remark-gfm") external remarkGfm: t = "default"
-//   @module("remark-rehype") external rehype: t = "default"
-//   @module("rehype-stringify") external stringify: t = "default"
-//   @module("unified") external unified: unit => t = "unified"
-//   @send external use: (t, 'a) => t = "use"
-//   @send external process: (t, string) => Promise.t<'a> = "process"
-// }
-
 module ErrorMessage = {
   open Kleur
   type t = [
@@ -72,10 +61,16 @@ module ErrorMessage = {
 module Chokidar = {
   type t
 
-  @obj
+  type awaitWriteFinishOptions = {
+    stabilityThreshold: int,
+    pollInterval: int,
+  }
+
   type watchConfig = {
     ignored: string,
     ignoreInitial: bool,
+    awaitWriteFinish: awaitWriteFinishOptions,
+    depth: int,
   }
 
   @module external watcher: t = "chokidar"

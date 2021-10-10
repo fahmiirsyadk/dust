@@ -16,22 +16,16 @@ let serverRun = () => {
 
   let config = {
     ignored: "**/src/**/*.js",
-    ignoreInitial: false,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 300,
+      pollInterval: 100
+    },
+    depth: 99
   }
 
   watcher
   ->watch(startPath, config)
-  ->on("all", _ => {
-    let _ = %raw("
-      Object.keys(require.cache).forEach(function(id) {
-        const path = require(`path`)
-        if(id.includes(path.resolve(`./src/`))) 
-        {
-          delete require.cache[id]
-        }
-      })
-    ")
-  })
   ->on("add", path => {
     Js.log("adding: " ++ path)
     initialScript()->ignore
