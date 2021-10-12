@@ -321,6 +321,7 @@ module Html = {
       }
       AttrString("preload", toString)->attrFormat
     }
+    let property = p => AttrString("property", p)->attrFormat
     let readonly = p => AttrBool("readonly", p)->attrFormat
     let rel__a = (p) => {
       let toString = switch p {
@@ -427,5 +428,3 @@ module Html = {
     }
   }
 }
-// @val external info: 'a = "info"
-// let location = info["location"]
