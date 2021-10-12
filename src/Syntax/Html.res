@@ -1,1 +1,2 @@
 include Internal__Dust_Syntax.Html
+include Internal__Dust_Syntax_Extra
