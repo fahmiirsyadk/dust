@@ -110,7 +110,7 @@ module Html = {
     let wbr = (attrs, children) => Paired->render("wbr", attrs, children)
   }
 
-  module Properties = {
+  module Attributes = {
     open Internal__Dust_Syntax_Compiler
     type t = typeAttr
 
@@ -229,14 +229,12 @@ module Html = {
       }
       AttrString("max", toString)->attrFormat
     }
-    let multiple = p => AttrBool("multiple", p)->attrFormat
-    let muted = p => AttrBool("muted", p)->attrFormat
-    let name = p => AttrString("name", p)->attrFormat
-    let name__meta = p => {
+    let meta_name = p => {
       let toString = switch p {
       | #Keyword => "keyword"
       | #Description => "description"
       | #Author => "author"
+      | #Title => "title"
       | #Viewport => "viewport"
       | #Generator => "generator"
       | #ApplicationName => "application-name"
@@ -244,6 +242,9 @@ module Html = {
       }
       AttrString("name", toString)->attrFormat
     }
+    let multiple = p => AttrBool("multiple", p)->attrFormat
+    let muted = p => AttrBool("muted", p)->attrFormat
+    let name = p => AttrString("name", p)->attrFormat
     let novalidate = p => AttrBool("novalidate", p)->attrFormat
     let onabort = p => AttrString("onabort", p)->attrFormat
     let onafterprint = p => AttrString("onafterprint", p)->attrFormat
@@ -323,7 +324,7 @@ module Html = {
     }
     let property = p => AttrString("property", p)->attrFormat
     let readonly = p => AttrBool("readonly", p)->attrFormat
-    let rel__a = (p) => {
+    let rel_a = (p) => {
       let toString = switch p {
       | #Author => "author"
       | #Alternate => "alternate"
@@ -341,8 +342,8 @@ module Html = {
       }
       AttrString("rel", toString)->attrFormat
     }
-    let rel__area = rel__a
-    let rel__form = p => {
+    let rel_area = rel_a
+    let rel_form = p => {
       let toString = switch p {
       | #External => "external"
       | #Help => "help"
@@ -356,7 +357,7 @@ module Html = {
       }
       AttrString("rel", toString)->attrFormat
     }
-    let rel__link = p => {
+    let rel_link = p => {
       let toString = switch p {
       | #Alternate => "alternate"
       | #Author => "author"
