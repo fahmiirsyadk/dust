@@ -2,5 +2,5 @@ lib/**/*
 **/*.merlin
 **/*.lock
 *.js
-tests/**/*
+.vscode/
 renovate.json

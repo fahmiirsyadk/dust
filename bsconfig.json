@@ -1,13 +1,9 @@
 {
   "name": "@fahmiirsyadk/dust",
-  "version": "0.1.8",
+  "version": "0.1.8-patch.0",
   "sources": [
     {
       "dir": "src",
-      "subdirs": true
-    },
-    {
-      "dir": "tests",
       "subdirs": true
     }
   ],

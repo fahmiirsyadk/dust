@@ -1,11 +1,8 @@
 node_modules
-
 # Rescript
 .bsb.lock
 .merlin
 lib/
-.vscode/
-
+.vscode/*
+src/Tests/*
 src/**/*.js
-tests/dist
-tests/**/*.js
