@@ -7,3 +7,5 @@ lib/
 .vscode/
 
 src/**/*.js
+tests/dist
+tests/**/*.js

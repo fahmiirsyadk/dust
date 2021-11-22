@@ -28,6 +28,14 @@ let generateHtml = (htmlContent, location) => {
   )
 }
 
+let deleteAllCache = %raw("
+  function() {
+    Object.keys(require.cache).forEach(function(key) {
+      delete require.cache[key]
+    })
+  }
+")
+
 let parseCollection = (meta, output, filename, props): metadataML => {
   let process = %raw("
   function (meta, output, filename, props) {
@@ -219,12 +227,19 @@ let update = path => {
   )
   switch dataPagesTuple {
   | (true, false, false) => path->replacePathAndRemove->then(_ => renderCollections())->ignore
-  | (false, true, false) => path->replacePathAndRemove->then(_ => renderCollections())->ignore
+  | (false, true, false) =>
+    path
+    ->replacePathAndRemove
+    ->then(_ => deleteAllCache())
+    ->then(_ => renderCollections())
+    ->then(_ => [pagePattern]->fsglob)
+    ->then(pagesPath => pagesPath->Js.Array2.map(path => renderPage(path, globalMetadata))->resolve)
+    ->ignore
   | (false, true, true) =>
     path
     ->replacePathAndRemove
     ->then(_ => renderPage(path->Js.String2.replace(".ml", ".js"), globalMetadata))
     ->ignore
-  | _ => Js.log("watching another ???")
+  | _ => ()
   }
 }
