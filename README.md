@@ -27,6 +27,39 @@ Benefit using Dust:
 
 * **Functional approach, Safe & Expressive.** If you write wrong code, it will give you _nice feedback_ (thanks Rescript). Also you can use looping, pattern matching or whatever like normal ocaml code (except u can't use ocaml packages, ofc).
 
+## example
+```ml
+module H = Dust.Html.Elements
+module A = Dust.Html.Attributes
+
+let head appname = 
+  H.head [] [
+    H.title [] (H.text appname)
+  ]
+
+(** Js code executed in compile time not runtime*)
+let year = 
+  Js.Date.now () 
+  |> Js.Date.fromFloat 
+  |> Js.Date.getFullYear 
+  |> Js.Float.toString
+
+let body = 
+  H.body [] [
+    H.h1 [] (H.text "Last this page rendered is: " ^ year)
+  ]
+
+(** main function is important to render the code into HTML *)
+let main () =
+  H.html [] [
+    head "this is head title"
+  ; body
+  ; H.footer [] [
+      H.span [] (H.text year)
+    ]
+  ]
+```
+
 # Installation
 ### Initialize project
 ```bash
