@@ -38,8 +38,7 @@ let serverRun = () => {
 
 let watcher = () => {
   open Utils.LiveServer
-
-  server->start({root: outputPath, logLevel: 0})
+  server->start({root: outputPath, logLevel: 0, opens: Config.config.openBrowser })
   Js.log("Ready for changes")
 
   serverRun()

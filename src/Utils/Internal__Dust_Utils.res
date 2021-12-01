@@ -89,6 +89,7 @@ module LiveServer = {
   type serverConfig = {
     root: string,
     logLevel: int,
+    @as("open") opens: bool,
   }
   @module external server: t = "live-server"
   @send external start: (t, serverConfig) => unit = "start"
