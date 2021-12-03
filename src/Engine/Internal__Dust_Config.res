@@ -10,7 +10,7 @@ type folderConfig = {
 let rootPath = Node.Process.cwd()
 let configPath = [rootPath, ".dust.yml"]->Node.Path.join
 
-let defaultFolderConfig = {
+let defaultConfig = {
   output: [rootPath, "dist"]->Node.Path.join,
   base: [rootPath, "src"]->Node.Path.join,
   openBrowser: true
@@ -36,27 +36,27 @@ let dustConfig = () => {
 let getFolderBase = () => {
   switch dustConfig()->Belt.Option.flatMap(data => data["base"]) {
   | Some(val) => val
-  | None => defaultFolderConfig.base
+  | None => defaultConfig.base
   }
 }
 
 let getFolderOutput = () => {
   switch dustConfig()->Belt.Option.flatMap(data => data["output"]) {
   | Some(val) => val
-  | None => defaultFolderConfig.output
+  | None => defaultConfig.output
   }
 }
 
 let getOpenBrowser = () => {
   switch dustConfig()->Belt.Option.flatMap(data => data["openBrowser"]) {
   | Some(val) => val
-  | None => defaultFolderConfig.openBrowser
+  | None => defaultConfig.openBrowser
   }
 }
 
 let config = {
-  base: [rootPath, getFolderBase()]->Node.Path.join,
-  output: [rootPath, getFolderOutput()]->Node.Path.join,
+  base: getFolderBase(),
+  output: getFolderOutput(),
   openBrowser: getOpenBrowser()
 }
 

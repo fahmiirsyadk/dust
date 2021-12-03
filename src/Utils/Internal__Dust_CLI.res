@@ -4,8 +4,8 @@ open Promise
 
 module Config = Internal__Dust_Config
 
-let outputPath = Config.getFolderOutput()
-let startPath = Config.getFolderBase()
+let outputPath = Config.config.output
+let startPath = Config.config.base
 
 let initialScript = () => {
   cleanOutputFolder()->then(_ => run())
