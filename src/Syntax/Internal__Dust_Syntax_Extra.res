@@ -9,4 +9,9 @@ module Extra = {
       H.meta(list{A.name("twitter:card"), A.content(card)}, list{}),
     ]->Belt.Array.reduce("", (x, y) => x ++ y)
   }
+
+  let inject = (file) => {
+    let text = Node.Fs.readFileAsUtf8Sync( Node.Path.join2(Internal__Dust_Config.config.base, file))
+    text
+  }
 }
