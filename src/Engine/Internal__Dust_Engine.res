@@ -89,10 +89,11 @@ let renderCollections = () => {
     )
 
   let transformMeta = %raw("
-      function(metadata, page, md, matter) {
+      function(config, metadata, page, md, matter) {
         const newMatter = {...matter, content: md}
         const url = Path.join(`/`, metadata.name, Path.basename(page, `.md`))
         return {
+          config: config,
           ...metadata,
           ...newMatter,
           url,
@@ -114,7 +115,11 @@ let renderCollections = () => {
         Utils.readFile(page, "utf-8")->then(raw => {
           let matter = raw->Markdown.mdToMatter
           let html = matter["content"]->Markdown.mdToHtml
-          let props = transformMeta(metadata, page, html, matter)
+          let config = switch Internal__Dust_Config.dataConfig {
+          | Some(val) => val
+          | None => ""
+          }
+          let props = transformMeta(config, metadata, page, html, matter)
           let _ = globalMetadata->Js.Array2.push(props)
           parseCollection(metadata, Config.getFolderOutput(), page, props)->resolve
         })
