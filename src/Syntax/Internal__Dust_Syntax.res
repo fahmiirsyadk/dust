@@ -25,6 +25,7 @@ module Html = {
     let col = (attrs, children) => Paired->render("col", attrs, children)
     let colgroup = (attrs, children) => Paired->render("colgroup", attrs, children)
     let command = (attrs, children) => Paired->render("command", attrs, children)
+    let custom_tag = (tag, attrs, children) => Paired->render(tag, attrs, children)
     let datalist = (attrs, children) => Paired->render("datalist", attrs, children)
     let dd = (attrs, children) => Paired->render("dd", attrs, children)
     let del = (attrs, children) => Paired->render("del", attrs, children)
@@ -138,6 +139,7 @@ module Html = {
     let coords = p => AttrString("coord", p)->attrFormat
     let contenteditable = p => AttrBool("contenteditable", p)->attrFormat
     let class_ = p => AttrString("class", p)->attrFormat
+    let custom_attr = (attr, p) => AttrString(attr, p)->attrFormat
     // TODO: check below this
     let cite = p => AttrString("cite", p)->attrFormat
     let data = p => AttrString("data", p)->attrFormat
