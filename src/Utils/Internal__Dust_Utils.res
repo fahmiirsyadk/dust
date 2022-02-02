@@ -1,4 +1,3 @@
-// open Array
 type writeFileOptions
 
 type encoding = [

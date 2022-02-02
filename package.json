@@ -1,24 +1,24 @@
 {
   "name": "@fahmiirsyadk/dust",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "index.js",
   "license": "MIT",
   "bin": {
     "dust": "dust"
   },
   "dependencies": {
-    "@ryyppy/rescript-promise": "^2.1.0",
-    "chokidar": "^3.5.2",
-    "fast-glob": "^3.2.7",
-    "fs-extra": "^10.0.0",
-    "gray-matter": "^4.0.3",
-    "import-fresh": "^3.3.0",
-    "js-yaml": "^4.1.0",
-    "kleur": "^4.1.4",
-    "live-server": "^1.2.1",
-    "markdown-it": "^12.2.0",
-    "recursive-copy": "^2.0.13",
-    "rescript": "^9.1.4"
+    "@ryyppy/rescript-promise": "2.1.0",
+    "chokidar": "3.5.3",
+    "fast-glob": "3.2.11",
+    "fs-extra": "10.0.0",
+    "gray-matter": "4.0.3",
+    "import-fresh": "3.3.0",
+    "js-yaml": "4.1.0",
+    "kleur": "4.1.4",
+    "live-server": "1.2.1",
+    "markdown-it": "12.3.2",
+    "recursive-copy": "2.0.13",
+    "rescript": "9.1.4"
   },
   "peerDependencies": {
     "rescript": "^9.1.4"
