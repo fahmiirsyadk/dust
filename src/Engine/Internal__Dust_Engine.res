@@ -145,11 +145,16 @@ let renderCollections = () => {
 let sortGlobalCollectionMeta = %raw("
   function(metadata) {
     let obj = {};
+
     metadata.forEach(data => {
       if(obj.hasOwnProperty(data.name)) {
         obj[`${data.name}`] = [{...obj[`${data.name}`]}, data]
       } else {
-        obj = { ...obj, [data.name]: data }
+        if (metadata.length === 1) {
+          obj = { ...obj, [data.name]: [data] }
+        } else {
+          obj = { ...obj, [data.name]: data }
+        }
       }
     })
     return obj
