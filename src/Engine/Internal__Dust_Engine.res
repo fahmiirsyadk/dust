@@ -40,9 +40,8 @@ let parseCollection = (meta, output, filename, props): metadataML => {
   if Node.Fs.existsSync(meta["layout"]) {
     let process = %raw("
       function (meta, output, filename, props) {
-        const importFresh = require(`import-fresh`)
-        let res = importFresh(`${meta.layout}`)
-        
+        const res = require(`${meta.layout}`)
+
         const status = res.main ? true : false
         const filepath = Path.join(output, meta.name, Path.basename(filename, `.md`), `index.html`)
         
@@ -65,8 +64,7 @@ let parsePages = (metadata, path, output): metadataML => {
   if Node.Fs.existsSync(path) {
     let process = %raw("
     function (meta, filepath, output) {
-      const importFresh = require(`import-fresh`)
-      let res = importFresh(filepath)
+      const res = require(`${filepath}`)
 
       const status = res.main ? true : false
       
@@ -167,7 +165,7 @@ let sortGlobalCollectionMeta = %raw("
         obj[meta.name] = [meta]
       }
     })
-    
+
     return obj
   }
 ")
@@ -226,6 +224,10 @@ let run = () => {
 
 // update
 let update = path => {
+
+  // delete the previous cache
+  let _ = deleteAllCache()
+
   let replacePath = origin => origin->Js.String2.replace("src", "dist")
   let replacePathAndRemove = origin => origin->Js.String2.replace("src", "dist")->Utils.remove
   let replaceFile = (origin, target) => {
@@ -251,7 +253,6 @@ let update = path => {
   | (false, true, false) =>
     path
     ->replacePathAndRemove
-    ->then(_ => deleteAllCache())
     ->then(_ => renderCollections())
     ->then(_ => [pagePattern]->fsglob)
     ->then(pagesPath => pagesPath->Js.Array2.map(path => renderPage(path, globalMetadata))->resolve)

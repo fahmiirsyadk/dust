@@ -12,7 +12,6 @@
     "fast-glob": "3.2.11",
     "fs-extra": "10.0.0",
     "gray-matter": "4.0.3",
-    "import-fresh": "3.3.0",
     "js-yaml": "4.1.0",
     "kleur": "4.1.4",
     "live-server": "1.2.1",
