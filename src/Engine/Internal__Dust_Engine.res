@@ -160,17 +160,14 @@ let sortGlobalCollectionMeta = %raw("
   function(metadata) {
     let obj = {};
 
-    metadata.forEach(data => {
-      if(obj.hasOwnProperty(data.name)) {
-        obj[`${data.name}`] = [{...obj[`${data.name}`]}, data]
+    metadata.forEach(meta => {
+      if(obj.hasOwnProperty(meta.name)) {
+        obj[meta.name].push(meta)
       } else {
-        if (metadata.length === 1) {
-          obj = { ...obj, [data.name]: [data] }
-        } else {
-          obj = { ...obj, [data.name]: data }
-        }
+        obj[meta.name] = [meta]
       }
     })
+    
     return obj
   }
 ")
