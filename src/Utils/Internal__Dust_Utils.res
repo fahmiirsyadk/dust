@@ -38,7 +38,7 @@ module Klaw = {
 
 module Kleur = {
   type t
-  @module("kleur") external kleur: t = "default"
+  @module external kleur: t = "kleur"
   @send external bold: (t, 'a) => t = "bold"
   @send external green: (t, 'a) => t = "green"
   @send external yellow: (t, 'a) => t = "yellow"
@@ -59,7 +59,7 @@ module ErrorMessage = {
     switch msg {
     | #error(msg) => kleur->bold()->red(j`--- Oh no, we found error ---\n>> ${msg} <<\n`)
     | #warning(msg) => kleur->bold()->yellow(j`--- Just in case, warning ---\n>> ${msg} <<\n`)
-    | #info(msg) => kleur->bold()->blue(j`--- Information for you ---\n>> ${msg} <<\n`)
+    | #info(msg) => kleur->bold()->blue(j`--- Information for you ---\n ${msg}\n`)
     }->Js.log
 }
 

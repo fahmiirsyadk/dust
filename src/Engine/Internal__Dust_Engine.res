@@ -37,38 +37,52 @@ let deleteAllCache = %raw("
 ")
 
 let parseCollection = (meta, output, filename, props): metadataML => {
-  let process = %raw("
-  function (meta, output, filename, props) {
-    const importFresh = require(`import-fresh`)
-    let res = importFresh(`${meta.layout}`)
-    
-    const status = res.main ? true : false
-    const filepath = Path.join(output, meta.name, Path.basename(filename, `.md`), `index.html`)
-    
-    if(status) {
-      return { status, filename, path: filepath, content: res.main(props)}
-    } else {
-      return { status, filename, path: filepath, content: ``}
-    }
-  }")
-  process(meta, output, filename, props)
+  if Node.Fs.existsSync(meta["layout"]) {
+    let process = %raw("
+      function (meta, output, filename, props) {
+        const importFresh = require(`import-fresh`)
+        let res = importFresh(`${meta.layout}`)
+        
+        const status = res.main ? true : false
+        const filepath = Path.join(output, meta.name, Path.basename(filename, `.md`), `index.html`)
+        
+        if(status) {
+          return { status, filename, path: filepath, content: res.main(props)}
+        } else {
+          return { status, filename, path: filepath, content: ``}
+        }
+    }")
+    process(meta, output, filename, props)
+  } else {
+    let basename = Node.Path.basename(meta["layout"])->Js.String2.slice(~from=0, ~to_=-3)
+    Utils.ErrorMessage.logMessage(#error(`Template [${basename}] not exist`))
+    Utils.ErrorMessage.logMessage(#info(`Create a file named ${basename}.ml in folder layouts`))
+    {status: false, filename: filename, path: filename, content: ``}
+  }
 }
 
 let parsePages = (metadata, path, output): metadataML => {
-  let process = %raw("
-  function (meta, filepath, output) {
-    const importFresh = require(`import-fresh`)
-    let res = importFresh(filepath)
+  if Node.Fs.existsSync(path) {
+    let process = %raw("
+    function (meta, filepath, output) {
+      const importFresh = require(`import-fresh`)
+      let res = importFresh(filepath)
 
-    const status = res.main ? true : false
-    
-    if(status) {
-      return { status, path: output, content: res.main(meta) }
-    } else {
-      return { status, path: output, content: `` }
-    }
-  }")
-  process(metadata, path, output)
+      const status = res.main ? true : false
+      
+      if(status) {
+        return { status, path: output, content: res.main(meta) }
+      } else {
+        return { status, path: output, content: `` }
+      }
+    }")
+    process(metadata, path, output)
+  } else {
+    let basename = Node.Path.basename(path)->Js.String2.slice(~from=0, ~to_=-3)
+    Utils.ErrorMessage.logMessage(#error(`Page [${basename}] not exist`))
+    Utils.ErrorMessage.logMessage(#info(`Create a file named ${path}.ml in folder pages`))
+    {status: false, filename: path, path: output, content: ``}
+  }
 }
 
 let renderCollections = () => {
