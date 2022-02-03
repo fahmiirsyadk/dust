@@ -117,12 +117,12 @@ Create a file named bsconfig.json in your project folder & paste code below, als
 Open package.json & add script below to run dust
 ```json
 "scripts": {
-  "dev": "dust w", 
-  "build": "dust",
+  "dev": "npx dust w", 
+  "build": "npx dust",
   "re:dev": "rescript build -w",
   "re:clean": "rescript clean",
   "re:build": "rescript",
-  "export": "rescript && dust"
+  "export": "rescript && npx dust"
 }
 ```
 
