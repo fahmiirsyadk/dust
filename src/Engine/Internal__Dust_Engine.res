@@ -1,5 +1,4 @@
 open Promise
-@module external clearModule: string => unit = "clear-module"
 @module external fsglob: array<string> => Promise.t<array<string>> = "fast-glob"
 @scope("Object") @val external obj_entries: 'a => array<'a> = "entries"
 
