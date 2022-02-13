@@ -16,7 +16,7 @@
     "kleur": "4.1.4",
     "live-server": "1.2.1",
     "markdown-it": "12.3.2",
-    "recursive-copy": "2.0.13",
+    "recursive-copy": "2.0.14",
     "rescript": "9.1.4"
   },
   "peerDependencies": {
