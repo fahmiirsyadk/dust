@@ -223,7 +223,6 @@ let run = () => {
 
 // update
 let update = path => {
-
   // delete the previous cache
   let _ = deleteAllCache()
 
@@ -238,15 +237,22 @@ let update = path => {
       : ()
   }
 
+  let newReplaceFile = path => {
+    let newPath = path->replacePath
+    newPath->Utils.remove->then(_ => path->Utils.copy(newPath))->ignore
+  }
+
   // process assets
   path->replaceFile("public")
   // process pages
   let filename = path->Node.Path.basename
+
   let dataPagesTuple = (
     filename->Js.String2.includes(".md"),
     filename->Js.String2.includes(".ml"),
     path->Js.String2.includes(pagesPath),
   )
+
   switch dataPagesTuple {
   | (true, false, false) => path->replacePathAndRemove->then(_ => renderCollections())->ignore
   | (false, true, false) =>
@@ -261,6 +267,6 @@ let update = path => {
     ->replacePathAndRemove
     ->then(_ => renderPage(path->Js.String2.replace(".ml", ".js"), globalMetadata))
     ->ignore
-  | _ => ()
+  | _ => path->newReplaceFile
   }
 }
