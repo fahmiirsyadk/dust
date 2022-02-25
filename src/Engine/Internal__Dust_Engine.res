@@ -227,23 +227,8 @@ let update = path => {
   let _ = deleteAllCache()
 
   let replacePath = origin => origin->Js.String2.replace("src", "dist")
-  let replacePathAndRemove = origin => origin->Js.String2.replace("src", "dist")->Utils.remove
-  let replaceFile = (origin, target) => {
-    origin->Js.String2.includes(target)
-      ? {
-          let newPath = origin->replacePath
-          newPath->Utils.remove->then(_ => path->Utils.copy(newPath))->ignore
-        }
-      : ()
-  }
+  let replacePathAndRemove = origin => origin->replacePath->Utils.remove
 
-  let newReplaceFile = path => {
-    let newPath = path->replacePath
-    newPath->Utils.remove->then(_ => path->Utils.copy(newPath))->ignore
-  }
-
-  // process assets
-  path->replaceFile("public")
   // process pages
   let filename = path->Node.Path.basename
 
@@ -267,6 +252,13 @@ let update = path => {
     ->replacePathAndRemove
     ->then(_ => renderPage(path->Js.String2.replace(".ml", ".js"), globalMetadata))
     ->ignore
-  | _ => path->newReplaceFile
+  | _ =>
+    switch path->Js.String2.includes("public") {
+    | true => {
+        let newPublicPath = path->Js.String2.replace(Node.Path.join2("src", "public"), "dist")
+        newPublicPath->Utils.remove->then(_ => path->Utils.copy(newPublicPath))->ignore
+      }
+    | false => path->replacePathAndRemove->then(_ => path->Utils.copy(path->replacePath))->ignore
+    }
   }
 }
