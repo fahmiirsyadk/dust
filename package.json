@@ -10,13 +10,13 @@
     "@ryyppy/rescript-promise": "2.1.0",
     "chokidar": "3.5.3",
     "fast-glob": "3.2.11",
-    "fs-extra": "10.0.0",
+    "fs-extra": "10.0.1",
     "gray-matter": "4.0.3",
     "js-yaml": "4.1.0",
     "kleur": "4.1.4",
     "live-server": "1.2.1",
     "markdown-it": "12.3.2",
-    "recursive-copy": "2.0.13",
+    "recursive-copy": "2.0.14",
     "rescript": "9.1.4"
   },
   "peerDependencies": {
