@@ -3,5 +3,5 @@ lib/**/*
 **/*.lock
 *.js
 .vscode/
-src/Tests/
+test/
 renovate.json

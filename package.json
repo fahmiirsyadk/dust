@@ -24,7 +24,8 @@
   },
   "scripts": {
     "dev": "rescript build -w",
-    "clean": "rescript clean"
+    "clean": "rescript clean",
+    "test": "ava"
   },
   "description": "static site generator with [Ocaml Syntax]-to-HTML based on rescript ( WIP )",
   "repository": {
@@ -38,5 +39,13 @@
   "bugs": {
     "url": "https://github.com/fahmiirsyadk/dust/issues"
   },
-  "homepage": "https://github.com/fahmiirsyadk/dust#readme"
+  "homepage": "https://github.com/fahmiirsyadk/dust#readme",
+  "devDependencies": {
+    "ava": "^4.1.0"
+  },
+  "ava": {
+    "files": [
+      "test/**/*"
+    ]
+  }
 }
