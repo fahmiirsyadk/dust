@@ -45,7 +45,7 @@
   },
   "ava": {
     "files": [
-      "test/**/*"
+      "test/**/*.test.js"
     ]
   }
 }
