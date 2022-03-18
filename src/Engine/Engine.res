@@ -67,15 +67,16 @@ let transformTemplate = (originPath, props) => {
     switch res {
     | true =>
       switch renderer(originPath, props) {
-      | Some(val) => {status: true, content: val}->resolve
-      | None => {status: false, content: None}->resolve
+      | Some(val) => {status: true, content: val}
+      | None => {status: false, content: None}
       }
-    | false => {status: false, content: None}->resolve
-    }
+    | false => {status: false, content: None}
+    }->resolve
   })
   ->catch(err => {
     switch err {
-    | JsError(obj) => switch Js.Exn.message(obj) {
+    | JsError(obj) =>
+      switch Js.Exn.message(obj) {
       | Some(msg) => Utils.ErrorMessage.logMessage(#error(`Something error happen: ${msg}`))
       | None =>
         Utils.ErrorMessage.logMessage(#error(`Something error happen, must be non-error value`))
