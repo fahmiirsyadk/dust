@@ -4,16 +4,16 @@
 type folderConfig = {
   output: string,
   base: string,
-  openBrowser: bool
+  openBrowser: bool,
 }
 
 let rootPath = Node.Process.cwd()
-let configPath = [rootPath, ".dust.yml"]->Node.Path.join
+let configPath = [rootPath, ".dust.yml"]->Node.Path.join->Node.Path.normalize
 
 let defaultConfig = {
-  output: [rootPath, "dist"]->Node.Path.join,
-  base: [rootPath, "src"]->Node.Path.join,
-  openBrowser: true
+  output: [rootPath, "dist"]->Node.Path.join->Node.Path.normalize,
+  base: [rootPath, "src"]->Node.Path.join->Node.Path.normalize,
+  openBrowser: true,
 }
 
 let isConfigExist = configPath->existsSync
@@ -57,7 +57,7 @@ let getOpenBrowser = () => {
 let config = {
   base: getFolderBase(),
   output: getFolderOutput(),
-  openBrowser: getOpenBrowser()
+  openBrowser: getOpenBrowser(),
 }
 
 let collections = () => {

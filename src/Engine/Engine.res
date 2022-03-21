@@ -4,6 +4,8 @@ open Promise
 @val external importJs: string => 'a = "require"
 @module("fs-extra") external pathExists: string => Promise.t<bool> = "pathExists"
 
+exception MyError(string)
+
 type metaTemplate = {
   status: bool,
   filename: string,
@@ -19,8 +21,13 @@ let globalMetadata: array<{.}> = []
 let pagesPath = [Config.getFolderBase(), "pages"]->Node.Path.join->Node.Path.normalize
 let pagePattern = [pagesPath, "**", "*.js"]->Node.Path.join->Node.Path.normalize
 
-// global functions
-let cleanOutputFolder = () => Utils.emptyDir(Config.getFolderOutput())
+let cleanOutputFolder = path => {
+  switch path {
+  | Some(val) => Utils.emptyDir(val)
+  | None => Utils.emptyDir(Config.getFolderOutput())
+  }
+}
+
 let deleteAllCache = %raw("
   function() {
     Object.keys(require.cache).forEach(function(key) {
@@ -31,12 +38,9 @@ let deleteAllCache = %raw("
 
 type templateData<'a> = {main: option<'a>}
 
-type templateMetadata<'b> = {
-  status: bool,
-  content: option<'b>,
-}
+type templateMetadata<'b> = {content: option<'b>}
 
-let transformTemplate = (originPath, props) => {
+let parseTemplate = (originPath, props) => {
   let basename = Node.Path.basename(originPath)->Js.String2.slice(~from=0, ~to_=-3)
   let renderer = (originPath, props) => {
     let data = importJs(originPath)
@@ -67,10 +71,10 @@ let transformTemplate = (originPath, props) => {
     switch res {
     | true =>
       switch renderer(originPath, props) {
-      | Some(val) => {status: true, content: val}
-      | None => {status: false, content: None}
+      | Some(val) => {content: val}
+      | None => {content: None}
       }
-    | false => {status: false, content: None}
+    | false => {content: None}
     }->resolve
   })
   ->catch(err => {
@@ -83,6 +87,52 @@ let transformTemplate = (originPath, props) => {
       }
     | _ => Utils.ErrorMessage.logMessage(#error(`Something unkown error happen`))
     }
-    {status: false, content: None}->resolve
+    err->reject
   })
+}
+
+module Transform = {
+  let page = (originPath, props) => {
+    let basename = path => Node.Path.basename(path)->Js.String2.slice(~from=0, ~to_=-3)
+    // List of whitelisted page / special pages
+    // instead of going nested folder/index.html
+    // we just use the filename as the page name
+    // TODO: add more pages ( dynamic from configs)
+    let whiteListPage = switch basename(originPath) {
+    | "index"
+    | "404"
+    | "500" => true
+    | _ => false
+    }
+
+    let outputPath =
+      [
+        Config.getFolderOutput(),
+        whiteListPage
+          ? basename(originPath) ++ ".html"
+          : basename(originPath)->Node.Path.join2("index.html"),
+      ]
+      ->Node.Path.join
+      ->Node.Path.normalize
+
+    Js.log(outputPath)
+
+    parseTemplate(originPath, props)
+    ->then(res => {
+      switch res.content {
+      | Some(val) =>
+        Utils.outputFile(
+          outputPath,
+          val,
+          ~options=Utils.writeFileOptions(~encoding=#"utf-8", ()),
+          (),
+        )
+      | None => resolve()
+      }
+    })
+    ->catch(err => {
+      Js.log("Somethings error")
+      err->reject
+    })
+  }
 }
