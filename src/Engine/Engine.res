@@ -36,8 +36,6 @@ let deleteAllCache = %raw("
   }
 ")
 
-type templateData<'a> = {main: option<'a>}
-
 type templateMetadata<'b> = {content: option<'b>}
 
 let parseTemplate = (originPath, props) => {
@@ -45,7 +43,7 @@ let parseTemplate = (originPath, props) => {
   let renderer = (originPath, props) => {
     let data = importJs(originPath)
 
-    let getStatus = data.main->Belt.Option.flatMap(func => func)
+    let getStatus = Js.Nullable.toOption(data["main"])
 
     switch getStatus {
     | Some(val) => val(props)
@@ -58,36 +56,46 @@ let parseTemplate = (originPath, props) => {
 
   let checkFile = path => {
     pathExists(path)
-    ->then(res => res->resolve)
-    ->catch(_ => {
-      Utils.ErrorMessage.logMessage(#error(`template [${basename}] not exist`))
-      false->resolve
+    ->then(res => Ok(res)->resolve)
+    ->catch(e => {
+      let msg = switch e {
+      | JsError(err) => 
+        switch Js.Exn.message(err) {
+        | Some(msg) => msg
+        | None => ""
+        }
+      | _ => "Unexpected error occurred when checking file"
+      }
+      Error(msg)->resolve
     })
   }
 
   checkFile(originPath)
-  ->then(res => res->resolve)
   ->then(res => {
     switch res {
-    | true =>
+    | Ok(_) => {
       switch renderer(originPath, props) {
       | Some(val) => {content: val}
       | None => {content: None}
       }
-    | false => {content: None}
+    }
+    | Error(msg) => {
+      Utils.ErrorMessage.logMessage(#error(`Something unknown error happen with message: ${msg}`))
+      {content: None}
+    }
     }->resolve
   })
-  ->catch(err => {
-    switch err {
-    | JsError(obj) =>
-      switch Js.Exn.message(obj) {
-      | Some(msg) => Utils.ErrorMessage.logMessage(#error(`Something error happen: ${msg}`))
-      | None =>
-        Utils.ErrorMessage.logMessage(#error(`Something error happen, must be non-error value`))
+  ->catch(e => {
+    let msg = switch e {
+    | JsError(err) => 
+      switch Js.Exn.message(err) {
+      | Some(msg) => `Something error happen: ${msg}`
+      | None => `Something error happen, must be non-error value`
       }
-    | _ => Utils.ErrorMessage.logMessage(#error(`Something unkown error happen`))
+    | _ => `Something unkown error happen`
     }
-    err->reject
+    Utils.ErrorMessage.logMessage(#error(msg))
+    {content: None}->resolve
   })
 }
 
