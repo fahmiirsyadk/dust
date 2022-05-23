@@ -1,17 +1,22 @@
-open Promise
-@module external fsglob: array<string> => Promise.t<array<string>> = "fast-glob"
-@scope("Object") @val external obj_entries: 'a => array<'a> = "entries"
-@val external importJs: string => 'a = "require"
-@module("fs-extra") external pathExists: string => Promise.t<bool> = "pathExists"
-
-exception MyError(string)
-
 type metaTemplate = {
   status: bool,
   filename: string,
   content: string,
   path: string,
 }
+
+type metaCollection = {
+  name: string,
+  layout: string,
+  source: string,
+  pattern: string,
+}
+
+open Promise
+@module external fsglob: array<string> => Promise.t<array<string>> = "fast-glob"
+@scope("Object") @val external obj_entries: 'a => array<('b, 'c)> = "entries"
+@val external importJs: string => 'a = "require"
+@module("fs-extra") external pathExists: string => Promise.t<bool> = "pathExists"
 
 module Config = Internal__Dust_Config
 module Markdown = Internal__Dust_Markdown
@@ -33,6 +38,22 @@ let deleteAllCache = %raw("
     Object.keys(require.cache).forEach(function(key) {
       delete require.cache[key]
     })
+  }
+")
+
+let sortGlobalCollectionMeta = %raw("
+  function(metadata) {
+    let obj = {};
+
+    metadata.forEach(meta => {
+      if(obj.hasOwnProperty(meta.name)) {
+        obj[meta.name].push(meta)
+      } else {
+        obj[meta.name] = [meta]
+      }
+    })
+
+    return obj
   }
 ")
 
@@ -59,7 +80,7 @@ let parseTemplate = (originPath, props) => {
     ->then(res => Ok(res)->resolve)
     ->catch(e => {
       let msg = switch e {
-      | JsError(err) => 
+      | JsError(err) =>
         switch Js.Exn.message(err) {
         | Some(msg) => msg
         | None => ""
@@ -73,21 +94,20 @@ let parseTemplate = (originPath, props) => {
   checkFile(originPath)
   ->then(res => {
     switch res {
-    | Ok(_) => {
+    | Ok(_) =>
       switch renderer(originPath, props) {
       | Some(val) => {content: val}
       | None => {content: None}
       }
-    }
     | Error(msg) => {
-      Utils.ErrorMessage.logMessage(#error(`Something unknown error happen with message: ${msg}`))
-      {content: None}
-    }
+        Utils.ErrorMessage.logMessage(#error(`Something unknown error happen with message: ${msg}`))
+        {content: None}
+      }
     }->resolve
   })
   ->catch(e => {
     let msg = switch e {
-    | JsError(err) => 
+    | JsError(err) =>
       switch Js.Exn.message(err) {
       | Some(msg) => `Something error happen: ${msg}`
       | None => `Something error happen, must be non-error value`
@@ -97,6 +117,68 @@ let parseTemplate = (originPath, props) => {
     Utils.ErrorMessage.logMessage(#error(msg))
     {content: None}->resolve
   })
+}
+
+let parseCollection = collections => {
+  open Js.Array2
+  let getMetadata: array<metaCollection> = {
+    collections
+    ->obj_entries
+    ->Js.Array2.map(collection => {
+      open Node
+      open Config
+      let (name, data) = collection
+      let sourcePath = Path.join2(getFolderBase(), data["source"])
+      {
+        name: name,
+        layout: [getFolderBase(), "layouts", data["layout"] ++ ".js"]->Path.join->Path.normalize,
+        source: sourcePath->Path.normalize,
+        pattern: sourcePath->Path.join2("*.md")->Path.normalize,
+      }
+    })
+  }
+
+  let transformMeta = %raw("
+      function(config, metadata, page, md, matter) {
+        const newMatter = {...matter, content: md}
+        const url = Path.join(`/`, metadata.name, Path.basename(page, `.md`))
+        return {
+          config: config,
+          ...metadata,
+          ...newMatter,
+          url,
+          page
+        }
+      }
+    ")
+
+  // getMetadata
+  let process = metadata => {
+    let _ = globalMetadata->removeCountInPlace(~pos=0, ~count=globalMetadata->length)
+
+    [metadata.pattern]
+    ->fsglob
+    ->then(pages => {
+      pages->map(page => Utils.readFile(page, "utf8"))->resolve
+    })
+    ->then(promisePages => promisePages->all)
+    // ->then(contents => {
+    //   contents
+    //   ->map(content => {
+    //     let matter = content->Markdown.mdToMatter
+    //     let html = matter["content"]->Markdown.mdToHtml
+    //     let config = switch Config.dataConfig {
+    //     | Some(val) => val
+    //     | None => ""
+    //     }
+    //     let props = transformMeta(config, metadata, content, html, matter)
+    //     let _ = globalMetadata->push(props)
+    //     parseTemplate(content, metadata)
+    //   })
+    //   ->resolve
+    // })
+  }
+  getMetadata->map(metadata => metadata->process)->all->then(res => res->Utils.flatten->resolve)
 }
 
 module Transform = {
@@ -123,8 +205,6 @@ module Transform = {
       ->Node.Path.join
       ->Node.Path.normalize
 
-    Js.log(outputPath)
-
     parseTemplate(originPath, props)
     ->then(res => {
       switch res.content {
@@ -138,9 +218,37 @@ module Transform = {
       | None => resolve()
       }
     })
-    ->catch(err => {
-      Js.log("Somethings error")
-      err->reject
+    ->catch(e => {
+      let msg = switch e {
+      | JsError(err) =>
+        switch Js.Exn.message(err) {
+        | Some(msg) => `Something error happen: ${msg}`
+        | None => `Something error happen, must be non-error value`
+        }
+      | _ => `Something unkown error happen`
+      }
+      Utils.ErrorMessage.logMessage(#error(msg))
+      resolve()
     })
   }
+}
+
+let copyPublicFiles = () => {
+  let publicPath = [Config.getFolderBase(), "public"]->Node.Path.join->Node.Path.normalize
+  publicPath->Node.Fs.existsSync
+    ? publicPath->Utils.recCopy(
+        Config.getFolderOutput(),
+        {overwrite: true, dot: true, results: false},
+      )
+    : resolve()
+}
+
+// first build
+let build = () => {
+  let listProcessPage = paths => paths->Js.Array2.map(path => Transform.page(path, globalMetadata))
+  Utils.ensureDir(Config.getFolderOutput())
+  ->then(() => [pagePattern]->fsglob)
+  ->then(paths => {
+    listProcessPage(paths)->Promise.all
+  })
 }

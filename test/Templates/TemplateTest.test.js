@@ -90,3 +90,16 @@ test("[Template] Transform template 404 to html", async (t) => {
 test.after("cleanup", () => {
   extra.removeSync(path.join(process.cwd(), "dist"));
 })
+
+test("[Collections] show off collections pages", async t => {
+  const { parseCollection } = require("./../../src/Engine/Engine");
+  const config = {
+    "blog": {
+      "layout": "layout_blog",
+      "source": path.join(process.cwd(), "test", "Templates", "sources", "collections")
+    }
+  }
+  parseCollection(config);
+  // console.log(data)
+  t.pass()
+})
