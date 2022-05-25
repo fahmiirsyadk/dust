@@ -5,9 +5,6 @@
     {
       "dir": "src",
       "subdirs": true
-    },
-    {
-      "dir": "test/Templates/source"
     }
   ],
   "package-specs": {
