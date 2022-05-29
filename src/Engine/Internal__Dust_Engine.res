@@ -241,17 +241,12 @@ let update = path => {
 
   switch dataPagesTuple {
   | (true, false, false) => path->replacePathAndRemove->then(_ => renderCollections())->ignore
-  | (false, true, false) =>
+  | (false, true, _) =>
     path
     ->replacePathAndRemove
     ->then(_ => renderCollections())
     ->then(_ => [pagePattern]->fsglob)
     ->then(pagesPath => pagesPath->Js.Array2.map(path => renderPage(path, globalMetadata))->resolve)
-    ->ignore
-  | (false, true, true) =>
-    path
-    ->replacePathAndRemove
-    ->then(_ => renderPage(path->Js.String2.replace(".ml", ".js"), globalMetadata))
     ->ignore
   | _ =>
     switch path->Js.String2.includes("public") {

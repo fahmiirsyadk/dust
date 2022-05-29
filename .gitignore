@@ -6,3 +6,4 @@ lib/
 .vscode/*
 src/Tests/*
 src/**/*.js
+test/Templates/source/*.js

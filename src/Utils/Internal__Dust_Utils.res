@@ -57,9 +57,9 @@ module ErrorMessage = {
 
   let logMessage = msg =>
     switch msg {
-    | #error(msg) => kleur->bold()->red(j`--- Oh no, we found error ---\n>> ${msg} <<\n`)
-    | #warning(msg) => kleur->bold()->yellow(j`--- Just in case, warning ---\n>> ${msg} <<\n`)
-    | #info(msg) => kleur->bold()->blue(j`--- Information for you ---\n ${msg}\n`)
+    | #error(msg) => kleur->bold()->red(j`--- Oh no, we found error ---\n ${msg}\n-----------------------------\n`)
+    | #warning(msg) => kleur->bold()->yellow(j`--- Just in case, warning ---\n ${msg}\n-----------------------------\n`)
+    | #info(msg) => kleur->bold()->blue(j`--- Information for you ---\n ${msg}\n-----------------------------\n`)
     }->Js.log
 }
 
