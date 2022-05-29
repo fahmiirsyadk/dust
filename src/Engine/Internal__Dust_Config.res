@@ -5,6 +5,7 @@ type folderConfig = {
   output: string,
   base: string,
   openBrowser: bool,
+  syntaxThemeUrl: string
 }
 
 let rootPath = Node.Process.cwd()
@@ -14,6 +15,7 @@ let defaultConfig = {
   output: [rootPath, "dist"]->Node.Path.join->Node.Path.normalize,
   base: [rootPath, "src"]->Node.Path.join->Node.Path.normalize,
   openBrowser: true,
+  syntaxThemeUrl: "nord"
 }
 
 let isConfigExist = configPath->existsSync
@@ -54,10 +56,18 @@ let getOpenBrowser = () => {
   }
 }
 
+let getSyntaxThemeUrl = () => {
+  switch dustConfig()->Belt.Option.flatMap(data => data["syntaxThemeUrl"]) {
+  | Some(val) => val
+  | None => defaultConfig.syntaxThemeUrl
+  }
+}
+
 let config = {
   base: getFolderBase(),
   output: getFolderOutput(),
   openBrowser: getOpenBrowser(),
+  syntaxThemeUrl: getSyntaxThemeUrl()
 }
 
 let collections = () => {
