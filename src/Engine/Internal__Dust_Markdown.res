@@ -13,6 +13,7 @@ type h<'a> = {codeToHtml: (. string, 'a) => string}
 external parseJson: string => 'a = "parse"
 
 let renderMarkdown = raw => {
+  let matter = raw->matter
   let theme = parseJson(
     Node.Fs.readFileAsUtf8Sync(
       Node.Path.join2(
@@ -29,6 +30,6 @@ let renderMarkdown = raw => {
       html: true,
       highlight: (code, lang) => h.codeToHtml(. code, {"lang": lang}),
     })
-    {"matter": raw->matter, "html": md->render(raw)}->Promise.resolve
+    {"matter": matter, "html": md->render(matter["content"])}->Promise.resolve
   })
 }
