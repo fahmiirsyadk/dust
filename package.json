@@ -17,7 +17,8 @@
     "live-server": "1.2.1",
     "markdown-it": "12.3.2",
     "recursive-copy": "2.0.14",
-    "rescript": "9.1.4"
+    "rescript": "9.1.4",
+    "shiki": "^0.10.1"
   },
   "peerDependencies": {
     "rescript": "^9.1.4"

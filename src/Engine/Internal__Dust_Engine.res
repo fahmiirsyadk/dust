@@ -124,18 +124,19 @@ let renderCollections = () => {
       pages
       ->Js.Array2.map(page => {
         Utils.readFile(page, "utf-8")->then(raw => {
-          let matter = raw->Markdown.mdToMatter
-          let html = matter["content"]->Markdown.mdToHtml
+          raw->Markdown.renderMarkdown
+        })->then(data => {
+          let matter = data["matter"]
+          let html = data["html"]
           let config = switch Internal__Dust_Config.dataConfig {
-          | Some(val) => val
-          | None => ""
+            | Some(val) => val
+            | None => ""
           }
           let props = transformMeta(config, metadata, page, html, matter)
           let _ = globalMetadata->Js.Array2.push(props)
           parseCollection(metadata, Config.getFolderOutput(), page, props)->resolve
         })
-      })
-      ->resolve
+      })->resolve
     })
     ->then(eachFile => eachFile->Promise.all)
     ->then(collections => [collections]->Utils.flatten->resolve)
