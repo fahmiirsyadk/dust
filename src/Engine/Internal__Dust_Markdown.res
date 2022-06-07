@@ -9,6 +9,8 @@ type h<'a> = {codeToHtml: (. string, 'a) => string}
 @send external render: (t, string) => string = "render"
 @module("shiki") external getHighlighter: 'a => Promise.t<h<'b>> = "getHighlighter"
 @module external matter: string => 'a = "gray-matter"
+@module("@minify-html/js") external cfg: 'a => 'a = "createConfiguration"
+@module("@minify-html/js") external minify: (string, 'a) => string = "minify"
 @scope("JSON") @val
 external parseJson: string => 'a = "parse"
 
@@ -30,6 +32,13 @@ let renderMarkdown = raw => {
       html: true,
       highlight: (code, lang) => h.codeToHtml(. code, {"lang": lang}),
     })
-    {"matter": matter, "html": md->render(matter["content"])}->Promise.resolve
+    {
+      "matter": matter,
+      "html": md
+      ->render(matter["content"])
+      ->minify(cfg({"minify_css": true}))
+      ->Node.Buffer.fromString
+      ->Node.Buffer.toString,
+    }->Promise.resolve
   })
 }

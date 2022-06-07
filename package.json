@@ -1,12 +1,13 @@
 {
   "name": "@fahmiirsyadk/dust",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "main": "index.js",
   "license": "MIT",
   "bin": {
     "dust": "dust"
   },
   "dependencies": {
+    "@minify-html/js": "^0.8.0",
     "@ryyppy/rescript-promise": "2.1.0",
     "chokidar": "3.5.3",
     "fast-glob": "3.2.11",
