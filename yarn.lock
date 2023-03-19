@@ -3,13 +3,13 @@
 
 
 "@minify-html/js@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@minify-html/js/-/js-0.8.0.tgz#66aa72ca2aa7477849db9415931aa39956e615c0"
-  integrity sha512-Od3EipIhDkyAWXX8VbE0pKCGiMd3rVTzh7tJ4F5ag7RVC/mNw68XDuK/EpRlzikxDrJMxzJGMvLmQoXrWMDIzg==
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/@minify-html/js/-/js-0.8.1.tgz#ddf7c77c4ab3258826c4b80256b25f8ced02a85b"
+  integrity sha512-U3uNTS54r02rNSbiI67OoMrd6cIQThRKMgziqfGfwYgyG6wTq2rcJVswNFdkQGoONRUH+QKvPuJHE3t66tVb/w==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
-  resolved "https://registry.npmjs.org/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz"
+  resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"
   integrity sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==
   dependencies:
     "@nodelib/fs.stat" "2.0.5"
