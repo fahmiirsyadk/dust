@@ -18,11 +18,11 @@
     "live-server": "1.2.2",
     "markdown-it": "13.0.1",
     "recursive-copy": "2.0.14",
-    "rescript": "9.1.4",
+    "rescript": "10.1.4",
     "shiki": "^0.10.1"
   },
   "peerDependencies": {
-    "rescript": "^9.1.4"
+    "rescript": "^9.1.4 || ^10.0.0"
   },
   "scripts": {
     "dev": "rescript build -w",
