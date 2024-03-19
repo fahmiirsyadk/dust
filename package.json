@@ -16,7 +16,7 @@
     "js-yaml": "4.1.0",
     "kleur": "4.1.4",
     "live-server": "1.2.2",
-    "markdown-it": "13.0.1",
+    "markdown-it": "14.1.0",
     "recursive-copy": "2.0.14",
     "rescript": "9.1.4",
     "shiki": "^0.10.1"
